@@ -1,22 +1,13 @@
 # SafeShare2
 
-**One document in. A different safe version out for each receiver — decided by a language
+**One document in. A different safe version out for each receiver decided by a language
 model, with the rule behind every change written down.**
 
-A rebuild of the SafeShare prototype (Tuwaiq Academy GenAI bootcamp capstone, team:
-Amal · Hajar · Ruba · Sana) with one deliberate change: **the AI is the core, not an
-optional assistant.** In the first version the decisions came from hand-written rules and
-patterns, and the model was a helper that could be switched off. Here a language model
+SafeShare is a prototype of a language model that
 reads the document, finds the personal data, chooses the action for the chosen receiver,
-cites the policy rule, and writes the substitute and the reasons. The model is
-`Qwen/Qwen2.5-3B-Instruct` on this machine, or the same job over an OpenAI-compatible API
-— this build currently points at `deepseek-chat` because answering one page with a 3B
-model on a laptop takes tens of seconds (see *Where the model runs* below). Whichever one
-is configured, the model is not optional: if it is not reachable, the application does
-not run. There is no rules-only fallback, because a fallback would let the system claim
-"AI" while a regex did the work.
+cites the policy rule, and writes the substitute and the reasons. 
 
-The code around the model still owns three things, and only three:
+The code around the model owns three things:
 
 1. **The policy.** `app/rules/rules.json` is the authority. The model is given the
    receiver's rules in its prompt and may not invent one. If it cites a rule that does not
