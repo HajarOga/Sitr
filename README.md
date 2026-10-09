@@ -137,7 +137,7 @@ SAFESHARE2_EMBED_OFFLINE=1                           # never download the embedd
 ## Run it
 
 ```bash
-python3 tests/test_safeshare2.py       # 22 tests, no model needed, ~1 second
+python3 tests/test_safeshare2.py       # 37 tests, no model needed, ~1 second
 python -m scripts.smoke_test           # end to end, including the model
 python -m scripts.make_demo_document   # rebuild the sample Arabic/English document
 
