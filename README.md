@@ -3,9 +3,17 @@
 **One document in. A different safe version out for each receiver decided by a language
 model, with the rule behind every change written down.**
 
-SafeShare is a prototype of a language model that
-reads the document, finds the personal data, chooses the action for the chosen receiver,
-cites the policy rule, and writes the substitute and the reasons. 
+SafeShare is a prototype application built around a language model. The
+model reads the document, finds the personal data, chooses the action for the chosen
+receiver, cites the policy rule, and writes the substitute and the reasons. 
+
+## What it looks like
+
+![The upload page: the document, the receiver, and what the model is](docs/img/01-upload.png)
+
+![The review page after a real run: 14 items, and what the guards changed](docs/img/02-review.png)
+
+![The policy page: ask the policy a question, get the rules that answer it](docs/img/03-policy.png)
 
 The code around the model owns three things:
 
