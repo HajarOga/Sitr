@@ -1,0 +1,20 @@
+Customer Complaint - Ufuq Digital Services
+شكوى عميل - أفق للخدمات الرقمية
+Report no.: CMP-2026-0417            Date: 2026-10-07
+Customer details
+Name: Abdullah Mohammed Alharbi
+الاسم: عبدالله محمد الحربي
+National ID: 1045837299
+Mobile: +966 55 123 4567            الجوال: ٠٥٥١٢٣٤٥٦٧
+Email: a.alharbi@example.com
+Address: Al Narjis district, Street 12, Villa 34
+العنوان: حي النرجس، شارع ١٢، فيلا ٣٤
+Customer no.: CUST-4471
+Complaint
+My internet has been down for three nights. My neighbour Saad Al-Anzi has the same problem on the same street. Please fix it quickly.
+Ticket ref.: TKT-88213            Service: fibre 500 Mbps
+Invoice
+Total: 1,250.00 SAR            VAT number: 310123456700003
+Card: **** **** **** 4412 - expires 07/29
+Handling agent
+Name: Sarah Al-Otaibi            Employee ID: EMP-33217

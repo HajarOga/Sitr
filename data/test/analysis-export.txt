@@ -1,0 +1,12 @@
+Regional Service Analysis
+Reference: ANALYSIS-EXPORT-2026-006
+Customer no.: CUST-1123
+Employee ID: EMP-10542
+Name: Abdullah Mohammed Alharbi
+National ID: 1099887760
+Address: حي النرجس، شارع ١٢، فيلا ٣٤
+Date of birth: 22/11/1979
+Region: Central
+Average handling time: 3.4 days
+Repeat visits: 12%
+VAT number: 310123456700003

@@ -1,0 +1,12 @@
+Service Contract Summary
+Reference: CONTRACT-EN-2026-012
+Account holder: Noura Saad Al-Qahtani
+National ID: 1088776651
+Mobile: 0501112233
+Email: k.otaibi@example.com
+Address: حي الملقا، شارع ٥، مبنى ٩
+IBAN: SA65 8000 0000 6080 1016 4560
+Contract term: 24 months
+Monthly volume: 14,320 units
+Care plan: premium
+Contract term: 24 months

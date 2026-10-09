@@ -1,0 +1,11 @@
+Employment Confirmation Letter
+Reference: HR-LETTER-EN-2026-003
+Employee name: Khalid Ibrahim Al-Otaibi
+Employee ID: EMP-10542
+National ID: 1033445568
+Mobile: ٠٥٥٤٤٥٥٦٦٧
+Email: k.otaibi@example.com
+Address: Al Malqa district, Street 5, Building 9
+Date of birth: 22/11/1979
+This letter confirms that the employee has completed the probation period and is entitled to the standard annual leave of 21 working days.
+Contract term: 24 months

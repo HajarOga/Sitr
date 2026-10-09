@@ -1,0 +1,12 @@
+Customer Complaint Report
+Reference: COMPLAINT-EN-2026-001
+Name: Abdullah Mohammed Alharbi
+National ID: 1045837299
+Mobile: 0551234567
+Email: a.alharbi@example.com
+Address: Al Narjis district, Street 12, Villa 34
+Customer no.: CUST-4471
+The washing machine stopped during the spin cycle and the customer reported a burning smell.
+Our technician visited on 05/10/2026 and confirmed the drum bearing failed.
+Parts required: drum bearing kit, door seal.
+Total: 1,250.00 SAR

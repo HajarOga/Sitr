@@ -1,0 +1,562 @@
+"""SafeShare2 tests - the contract, not the model.
+
+    python3 tests/test_safeshare2.py
+
+Everything here runs without the language model, in about a second, and that is the
+point: the *decisions* are the model's, but the rules about what is allowed to reach a
+document are code, and code can be tested. The one test that needs the model skips
+itself when the weights are not installed, so a fresh clone can still run the suite.
+
+What is covered:
+
+* the policy wins when the model and the rules disagree;
+* an invented rule id is never applied;
+* a value the model reports that is not in the document is dropped;
+* low confidence and an un-cited KEEP both end up with a human;
+* Arabic-Indic digits are located correctly;
+* an unsafe substitute is repaired by the generator;
+* JSON with fences or trailing commas is still parsed;
+* chunking never loses a line;
+* solving: unanswered items leave the release;
+* the audit log records the model's calls and stores no original value;
+* the policy index finds rules by meaning, filters by receiver, and stays level with the
+  policy file;
+* a policy question cites real rules, and an invented citation from the model is dropped;
+* a policy edit is validated, written atomically, version-bumped and audited, and a bad
+  edit is refused without touching the file.
+"""
+from __future__ import annotations
+
+import json
+import sqlite3
+import sys
+import tempfile
+import itertools
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from app import config, core, guards                              # noqa: E402
+from app.audit import store as audit                              # noqa: E402
+from app.document_processing.document import Block, Document      # noqa: E402
+from app.llm import engine, prompts                               # noqa: E402
+from app.pii_detection.schema import Action, Detection            # noqa: E402
+from app.policy import qa as policy_qa                            # noqa: E402
+from app.replacement.generator import FakeGenerator               # noqa: E402
+from app.rules.store import library as default_library            # noqa: E402
+
+LETTER = (
+    "Customer Complaint\n"
+    "Name: Abdullah Mohammed Alharbi\n"
+    "الاسم: عبدالله محمد الحربي\n"
+    "National ID: 1045837299\n"
+    "Mobile: +966 55 123 4567            الجوال: ٠٥٥١٢٣٤٥٦٧\n"
+    "Email: a.alharbi@example.test\n"
+    "Ticket ref.: TKT-88213\n"
+)
+
+
+def document(text: str = LETTER) -> Document:
+    return Document(filename="letter.txt", blocks=[Block(id="b0", text=text)])
+
+
+def finding(**kwargs) -> dict:
+    """A raw model finding, with sane defaults, so each test states only its own point."""
+    base = {"original_text": "1045837299", "type": "NATIONAL_ID", "action": "REMOVE",
+            "replacement": None, "confidence": 0.95, "rule_id": "VENDOR-PII-002",
+            "reason": "A national ID is not shared with a vendor."}
+    base.update(kwargs)
+    return base
+
+
+def checked(findings: list[dict], receiver: str = "EXTERNAL_VENDOR",
+            text: str = LETTER):
+    return guards.check_findings(findings, document(text), receiver,
+                                 default_library(), FakeGenerator(receiver=receiver))
+
+
+# ------------------------------------------------------------------ guards: the rules
+
+
+def test_the_policy_wins_over_the_model():
+    detections, notes = checked([finding(original_text="a.alharbi@example.test",
+                                         type="EMAIL", action="REPLACE",
+                                         replacement="b.person@example.test",
+                                         rule_id="VENDOR-PII-004")])
+    assert len(detections) == 1
+    assert detections[0].action == Action.REMOVE.value, detections[0].action
+    assert any("the policy wins" in note for note in notes), notes
+
+
+def test_an_invented_rule_is_never_applied():
+    detections, notes = checked([finding(rule_id="VENDOR-PII-999")])
+    assert detections[0].action == Action.ASK_HUMAN.value
+    assert detections[0].rule_id is None
+    assert any("does not exist" in note for note in notes), notes
+
+
+def test_a_rule_for_another_type_is_refused():
+    detections, notes = checked([finding(rule_id="VENDOR-PII-004")])   # email rule, ID item
+    assert detections[0].action == Action.ASK_HUMAN.value
+    assert any("is about EMAIL" in note for note in notes), notes
+
+
+def test_a_value_that_is_not_in_the_document_is_dropped():
+    detections, notes = checked([finding(original_text="9999999999")])
+    assert detections == []
+    assert any("not in the document" in note for note in notes), notes
+
+
+def test_low_confidence_goes_to_a_person():
+    detections, _ = checked([finding(confidence=0.62)])
+    assert detections[0].action == Action.ASK_HUMAN.value
+    assert "ask_reason" in detections[0].meta
+
+
+def test_keep_without_a_rule_goes_to_a_person():
+    detections, notes = checked([finding(original_text="TKT-88213", type="CUSTOMER_ID",
+                                         action="KEEP", rule_id=None)])
+    assert detections[0].action == Action.ASK_HUMAN.value
+    assert any("wanted to keep" in note for note in notes), notes
+
+
+def test_an_unknown_type_is_refused():
+    detections, notes = checked([finding(type="FAVOURITE_COLOUR")])
+    assert detections == []
+    assert any("unknown type" in note for note in notes), notes
+
+
+def test_an_unsafe_substitute_is_repaired():
+    detections, notes = checked([finding(original_text="Abdullah Mohammed Alharbi",
+                                         type="PERSON_NAME", action="REPLACE",
+                                         replacement="Abdullah Mohammed Alharbi",
+                                         rule_id="VENDOR-PII-001", confidence=0.9)])
+    assert detections[0].action == Action.REPLACE.value
+    assert detections[0].replacement != "Abdullah Mohammed Alharbi"
+    assert detections[0].meta.get("replacement_repaired") is True
+    assert any("not" in note and "acceptable" in note for note in notes), notes
+
+
+def test_arabic_indic_digits_are_found():
+    occurrences = guards.find_occurrences(document(), "٠٥٥١٢٣٤٥٦٧")
+    assert len(occurrences) == 1
+    block_id, start, end = occurrences[0]
+    assert document().block(block_id).text[start:end] == "٠٥٥١٢٣٤٥٦٧"
+
+
+def test_every_occurrence_of_a_value_is_reported():
+    text = "Call 0500000000 today. Backup line: 0500000000."
+    detections, _ = checked([finding(original_text="0500000000", type="PHONE",
+                                     action="REMOVE", rule_id="VENDOR-PII-003")],
+                            text=text)
+    assert len(detections) == 2, [d.start for d in detections]
+
+
+def test_overlapping_items_are_reported_once():
+    text = "Name: Abdullah Mohammed Alharbi"
+    detections, notes = checked([
+        finding(original_text="Abdullah Mohammed", type="PERSON_NAME", action="REPLACE",
+                replacement="Salem Al-Harbi", rule_id="VENDOR-PII-001", confidence=0.9),
+        finding(original_text="Abdullah Mohammed Alharbi", type="PERSON_NAME",
+                action="REPLACE", replacement="Salem Al-Harbi",
+                rule_id="VENDOR-PII-001", confidence=0.9)], text=text)
+    assert len(detections) == 1
+    assert any("overlapped" in note for note in notes), notes
+
+
+# ------------------------------------------------------------------ engine: the JSON
+
+
+def test_json_with_a_fence_is_parsed():
+    payload = engine.extract_json('```json\n{"findings": []}\n```')
+    assert payload == {"findings": []}
+
+
+def test_json_with_trailing_commas_is_parsed():
+    payload = engine.extract_json('{"findings": [{"type": "PHONE",},],}')
+    assert payload["findings"][0]["type"] == "PHONE"
+
+
+def test_json_inside_prose_is_parsed():
+    payload = engine.extract_json('Sure! Here you go: {"findings": []} hope that helps')
+    assert payload == {"findings": []}
+
+
+def test_prose_without_json_is_not_parsed():
+    assert engine.extract_json("I could not find anything in this document.") is None
+
+
+def test_the_chunker_keeps_every_line():
+    text = "\n".join(f"line {i} with some content" for i in range(400))
+    parts = core.chunks(text, size=500, overlap_lines=2)
+    assert len(parts) > 1
+    for line in ("line 0 with some content", "line 399 with some content"):
+        assert any(line in part for part in parts), f"{line} was lost"
+
+
+# ------------------------------------------------------------------- the model gate
+
+
+def test_the_model_is_mandatory():
+    """With no weights, analyze() stops instead of quietly doing something else."""
+    state = engine.install_state()
+    if state["installed"]:
+        return "skipped: the model is installed on this machine"
+    try:
+        core.analyze(document(), "EXTERNAL_VENDOR")
+    except engine.ModelNotInstalled as exc:
+        assert "setup_model" in str(exc)
+        return "verified"
+    raise AssertionError("analyze() ran without the model installed")
+
+
+def test_the_prompts_state_the_contract():
+    messages = prompts.analyze_messages("doc", "External Vendor", "why",
+                                        [{"rule_id": "VENDOR-PII-002",
+                                          "type": "NATIONAL_ID", "action": "REMOVE",
+                                          "reason": "x"}])
+    system = messages[0]["content"]
+    assert "JSON only" in system
+    assert "Never invent a rule" in system
+    for pii_type in ("NATIONAL_ID", "PHONE", "PERSON_NAME"):
+        assert pii_type in system
+    assert "VENDOR-PII-002" in messages[1]["content"]
+
+
+# ------------------------------------------------------------------- release & audit
+
+
+def test_unanswered_items_leave_the_release():
+    detections, _ = checked([finding(confidence=0.55)])          # goes to a person
+    analysis = core.AnalysisResult(document=document(), receiver="EXTERNAL_VENDOR",
+                                   purpose="test", detections=detections,
+                                   generator=FakeGenerator(receiver="EXTERNAL_VENDOR"))
+    applied = core.apply_decisions(analysis)
+    assert applied["incomplete"] is True
+    assert "1045837299" not in applied["changed"]["b0"]
+
+
+def test_the_audit_records_the_model_and_stores_no_value():
+    detections, _ = checked([finding(), finding(original_text="TKT-88213",
+                                                type="CUSTOMER_ID", action="KEEP",
+                                                rule_id="VENDOR-PII-010")])
+    for index, detection in enumerate(detections):
+        detection.meta.setdefault("id", f"d{index}")
+        detection.meta["masked"] = core.mask_value(detection.original_text)
+        detection.meta["value_hash"] = core.value_hash(detection.original_text)
+    analysis = core.AnalysisResult(
+        document=document(), receiver="EXTERNAL_VENDOR", purpose="test",
+        detections=detections, generator=FakeGenerator(receiver="EXTERNAL_VENDOR"),
+        rules_version="test", model="Qwen/Qwen2.5-3B-Instruct",
+        calls=[{"purpose": "analyze part 1/1", "model": "Qwen/Qwen2.5-3B-Instruct",
+                "device": "cpu", "tokens_out": 120, "seconds": 4.5,
+                "prompt_sha": "abc123"}],
+        summary_text="The model removed two identifiers.")
+
+    applied = core.apply_decisions(analysis)
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "audit.sqlite3"
+        run_id = audit.record_run(analysis, applied, db_path=db)
+        calls = audit.model_calls(run_id, db_path=db)
+        assert len(calls) == 1 and calls[0]["tokens_out"] == 120, calls
+        row = audit.runs(limit=1, db_path=db)[0]
+        assert row["model_seconds"] == 4.5 and row["model"] == analysis.model, row
+        assert row["ai_summary"] == "The model removed two identifiers."
+        blob = db.read_bytes()
+        assert b"1045837299" not in blob, "the audit log stored the original value"
+        assert b"a.alharbi@example.test" not in blob
+
+
+def test_a_release_document_is_written():
+    detections, _ = checked([finding()])
+    for index, detection in enumerate(detections):
+        detection.meta.setdefault("id", f"d{index}")
+        detection.meta["masked"] = core.mask_value(detection.original_text)
+        detection.meta["value_hash"] = core.value_hash(detection.original_text)
+    analysis = core.AnalysisResult(document=document(), receiver="EXTERNAL_VENDOR",
+                                   purpose="test", detections=detections,
+                                   generator=FakeGenerator(receiver="EXTERNAL_VENDOR"))
+    applied = core.apply_decisions(analysis)
+    with tempfile.TemporaryDirectory() as folder:
+        written = __import__("app.document_processing.writers",
+                             fromlist=["write_release"]).write_release(
+            analysis.document, folder, "letter", applied["changed"])
+        text = Path(written["path"]).read_text(encoding="utf-8")
+    assert "1045837299" not in text
+    assert "National ID" in text
+
+
+# --------------------------------------------------------------- the policy index
+# These use a hashing embedder and an in-memory Chroma collection, so the suite stays
+# download-free and fast. The real multilingual embedder is checked only for the
+# faithful-wiring property (it must be able to produce one vector per document).
+
+
+_INDEX_SEQUENCE = itertools.count()
+
+
+def indexed(library=None):
+    """A throwaway index: an in-memory Chroma with a name no other test shares.
+
+    Chroma's in-memory client is process-wide (two `EphemeralClient`s see each other's
+    collections), so a shared collection name would leak state between tests - one test's
+    filled index would look "already built" to the next. The name is varied, not the
+    assertions.
+    """
+    from app.policy.policy_index import HashingEmbedder, PolicyIndex
+
+    return PolicyIndex(embedder=HashingEmbedder(), persist=False,
+                       library=library or default_library(),
+                       collection_name=f"test-policy-{next(_INDEX_SEQUENCE)}")
+
+
+def test_a_rule_embeds_its_type_action_receiver_and_reason():
+    from app.policy import policy_index
+
+    rule = default_library().rules[0]
+    text = policy_index.rule_document(rule, default_library().receivers)
+    assert rule.pii_type in text and rule.action in text and rule.reason in text
+    assert policy_index.rule_hash(rule, default_library().receivers) == \
+        policy_index.rule_hash(rule, default_library().receivers)
+
+
+def test_the_index_holds_one_entry_per_rule_and_is_idempotent():
+    index = indexed()
+    report = index.sync()
+    assert report["added"] == len(default_library().rules)
+    assert report["embedded"] == len(default_library().rules)
+    second = index.sync()
+    assert second["embedded"] == 0 and second["removed"] == 0, second
+    status = index.status()
+    assert status["in_sync"] and status["documents"] == len(default_library().rules)
+
+
+def test_a_receiver_filter_can_only_return_that_receivers_rules():
+    index = indexed()
+    for receiver in default_library().receivers:
+        for hit in index.query("a name and a phone number", receiver=receiver, top_k=8):
+            assert hit["receiver"] == receiver, hit
+
+
+def test_a_filter_that_matches_nothing_returns_nothing():
+    """CUSTOM has no rules. An empty result must stay empty - never a fallback to all."""
+    index = indexed()
+    assert index.query("anything at all", receiver="CUSTOM", top_k=5) == []
+
+
+def test_the_collection_name_carries_the_policy_version():
+    """An edited policy must land on a new collection, so no stale vector can be mixed in."""
+    from app.policy import policy_index
+    from app.rules.store import RulesLibrary
+
+    index = indexed()
+    before = index.collection_name()
+    payload = json.loads(config.RULES_PATH.read_text(encoding="utf-8"))
+    payload["rules"][0]["action"] = ("REMOVE" if payload["rules"][0]["action"] != "REMOVE"
+                                     else "KEEP")
+    changed = RulesLibrary(payload)
+    from app.policy.policy_index import HashingEmbedder, PolicyIndex
+
+    other = PolicyIndex(embedder=HashingEmbedder(), persist=False, library=changed)
+    assert other.collection_name() != before
+    assert policy_index.policy_fingerprint(changed, "hashing:x") != \
+        policy_index.policy_fingerprint(default_library(), "hashing:x")
+
+
+def test_the_real_embedder_would_produce_one_vector_per_document():
+    """Faithful wiring, no download: skip unless the embedder is already installed."""
+    from app.policy.policy_index import SentenceTransformerEmbedder
+
+    embedder = SentenceTransformerEmbedder()
+    if not embedder.is_installed():
+        return "skipped: run `python -m scripts.setup_model` to fetch the embedder"
+    vectors = embedder.encode(["سياسة مشاركة البيانات", "data sharing policy"])
+    assert len(vectors) == 2 and len(vectors[0]) == len(vectors[1]) > 0
+
+
+# ------------------------------------------------------------ policy Q&A and edits
+
+
+def test_a_policy_question_returns_cited_rules():
+    result = policy_qa.ask_policy("What may a vendor see?", use_model=False,
+                                  index=indexed(), library=default_library())
+    assert result["answered_by"] == "retrieval"
+    assert result["citations"], result
+    assert all(citation["rule_id"] for citation in result["citations"])
+
+
+def test_an_invented_citation_from_the_qa_model_is_dropped():
+    """The model may only cite rules it was given - the same contract as the guards."""
+    original_installed, original_json = engine.ensure_installed, engine.generate_json
+    engine.ensure_installed = lambda: {"installed": True}
+    engine.generate_json = lambda *a, **k: (
+        {"answer": "Names may not be shared (VENDOR-PII-001). See ALSO-999-001.",
+         "citations": ["VENDOR-PII-001", "FAKE-999"]},
+        {"attempts": 1, "parsed": True, "seconds": 0.0})
+    try:
+        result = policy_qa.ask_policy("May a vendor see a name?", use_model=True,
+                                      index=indexed(), library=default_library())
+    finally:
+        engine.ensure_installed, engine.generate_json = original_installed, original_json
+    assert result["answered_by"] == "model"
+    assert result["cited"] == ["VENDOR-PII-001"], result.get("cited")
+    assert "FAKE-999" in result["invented_citations"], result
+    assert "ALSO-999-001" in result["invented_citations"], result
+    assert any("FAKE-999" in note for note in result["notes"]), result["notes"]
+
+
+def test_a_mistyped_rule_id_is_reported_as_a_typo_not_as_a_citation():
+    """The real model wrote VENDOR-PIII-003. A reader must see that, not silence."""
+    hits = [{"rule_id": "VENDOR-PII-003", "action": "REMOVE"},
+            {"rule_id": "VENDOR-PII-001", "action": "REPLACE"}]
+    resolved = policy_qa.resolve_citations(
+        "A phone number must be removed (VENDOR-PIII-003).", [], hits)
+    assert resolved["verified"] == []
+    assert resolved["suspect"] == [{"claimed": "VENDOR-PIII-003", "meant": "VENDOR-PII-003",
+                                    "action": "REMOVE"}], resolved
+    assert resolved["invented"] == []
+
+
+def test_a_different_rule_id_is_not_mistaken_for_a_typo():
+    hits = [{"rule_id": "VENDOR-PII-003", "action": "REMOVE"},
+            {"rule_id": "VENDOR-PII-001", "action": "REPLACE"}]
+    resolved = policy_qa.resolve_citations("See VENDOR-PII-004.", [], hits)
+    assert resolved["suspect"] == []
+    assert resolved["invented"] == ["VENDOR-PII-004"]
+
+
+def test_the_grounded_answer_block_is_built_from_the_retrieved_rules():
+    result = policy_qa.ask_policy("May a vendor see a phone number?", use_model=False,
+                                  index=indexed(), library=default_library())
+    text = policy_qa.grounded_answer(result, result["hits"], default_library())
+    assert "VENDOR-PII-003" in text and "REMOVE" in text
+    assert "External Vendor" in text
+
+
+def test_a_question_with_no_matching_receiver_says_the_policy_is_silent():
+    result = policy_qa.ask_policy("May the custom receiver see a name?", use_model=False,
+                                  index=indexed(), library=default_library())
+    assert result["hits"] == []
+    assert any("ASK_HUMAN" in note for note in result["notes"]), result["notes"]
+
+
+def test_editing_a_rule_validates_writes_bumps_and_audits():
+    from app.policy.policy_editor import PolicyEditor
+
+    with tempfile.TemporaryDirectory() as folder:
+        target = Path(folder) / "rules.json"
+        target.write_text(config.RULES_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+        db = Path(folder) / "audit.sqlite3"
+        editor = PolicyEditor(path=target, db_path=db)
+        before = editor.rule("VENDOR-PII-003")
+        report = editor.set_rule("VENDOR-PII-003", action="KEEP",
+                                 reason="Vendors need the callback number.",
+                                 editor="hajar", sync_index=False)
+        assert report["changed"] and "action" in " ".join(report["changes"])
+
+        # the file on disk is the new policy, and it still loads
+        after = PolicyEditor(path=target).rule("VENDOR-PII-003")
+        assert after.action == "KEEP" and after.action != before.action
+        assert after.rule_id == before.rule_id and after.pii_type == before.pii_type
+
+        # the version moved, and the change is in the history with a before and after
+        original_version = json.loads(
+            config.RULES_PATH.read_text(encoding="utf-8"))["version"]
+        history = editor.history(limit=5)
+        assert history and history[0]["rule_id"] == "VENDOR-PII-003"
+        assert history[0]["editor"] == "hajar"
+        assert history[0]["version_before"] == original_version
+        assert history[0]["before"]["action"] == before.action
+        assert history[0]["after"]["action"] == "KEEP"
+
+
+def test_a_bad_edit_is_refused_and_the_file_is_untouched():
+    from app.policy.policy_editor import PolicyEditError, PolicyEditor
+
+    with tempfile.TemporaryDirectory() as folder:
+        target = Path(folder) / "rules.json"
+        original = config.RULES_PATH.read_text(encoding="utf-8")
+        target.write_text(original, encoding="utf-8")
+        editor = PolicyEditor(path=target, db_path=Path(folder) / "audit.sqlite3")
+
+        for attempt in (lambda: editor.set_rule("VENDOR-PII-003", action="DELETE_EVERYTHING"),
+                        lambda: editor.set_rule("VENDOR-PII-999", action="KEEP"),
+                        lambda: editor.set_rule("VENDOR-PII-003", reason="   "),
+                        lambda: editor.add_rule(rule_id="VENDOR-PII-003", receiver="ANALYST",
+                                                pii_type="PHONE", action="KEEP", reason="x"),
+                        lambda: editor.add_rule(rule_id="NEW-1", receiver="ANALYST",
+                                                pii_type="PHONE", action="KEEP", reason="x")):
+            try:
+                attempt()
+            except PolicyEditError:
+                continue
+            raise AssertionError("a bad edit was accepted")
+        assert target.read_text(encoding="utf-8") == original, "the policy file was changed"
+
+
+def test_an_edited_policy_is_what_the_release_pipeline_reads():
+    """The point of reload_library(): the next analysis uses the new action, no restart."""
+    from app.policy.policy_editor import PolicyEditor
+    from app.rules.store import RulesLibrary
+
+    with tempfile.TemporaryDirectory() as folder:
+        target = Path(folder) / "rules.json"
+        target.write_text(config.RULES_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+        editor = PolicyEditor(path=target, db_path=Path(folder) / "audit.sqlite3")
+        editor.set_rule("VENDOR-PII-002", action="KEEP",
+                        reason="The vendor needs the ID to verify the warranty.",
+                        sync_index=False)
+
+        # a library built from that file has the new action...
+        reloaded = RulesLibrary(json.loads(target.read_text(encoding="utf-8")))
+        assert reloaded.rule_for("EXTERNAL_VENDOR", "NATIONAL_ID").action == "KEEP"
+        # ...and the guards now enforce what the policy says, not what it said
+        detections, _ = guards.check_findings(
+            [finding(action="REPLACE", replacement="1000000000")],
+            document(), "EXTERNAL_VENDOR", reloaded, FakeGenerator(receiver="EXTERNAL_VENDOR"))
+        assert detections[0].action == Action.KEEP.value, detections[0].action
+
+
+# ------------------------------------------------------------- with the real model
+
+
+def test_end_to_end_with_the_model():
+    """The real thing: the model reads a document and the guards accept the result."""
+    state = engine.install_state()
+    if not state["installed"]:
+        return "skipped: run `python -m scripts.setup_model` then run the suite again"
+    engine.reset_calls()
+    analysis = core.analyze(document(), "EXTERNAL_VENDOR", "a vendor is fixing the line")
+    assert analysis.detections, "the model found nothing in a document full of PII"
+    for detection in analysis.detections:
+        assert detection.action in {a.value for a in Action}
+        if detection.action in (Action.REPLACE.value, Action.REMOVE.value):
+            assert detection.rule_id, "a change without a cited rule reached the release"
+    assert analysis.calls, "no model calls were recorded"
+    assert analysis.summary_text, "the model did not write the audit summary"
+    return f"verified: {len(analysis.detections)} items, {len(analysis.calls)} model calls"
+
+
+# ---------------------------------------------------------------------------- runner
+
+
+def main() -> int:
+    tests = [(name, value) for name, value in sorted(globals().items())
+             if name.startswith("test_") and callable(value)]
+    failures = []
+    for name, test in tests:
+        try:
+            note = test()
+        except Exception as exc:                              # noqa: BLE001
+            failures.append((name, exc))
+            print(f"FAIL  {name}: {type(exc).__name__}: {exc}")
+        else:
+            print(f"PASS  {name}" + (f"  [{note}]" if isinstance(note, str) else ""))
+    print(f"\n{len(tests) - len(failures)}/{len(tests)} passed")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
