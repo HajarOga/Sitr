@@ -85,7 +85,7 @@ The same three settings work as plain environment variables if you would rather 
 file at all:
 
 ```bash
-SAFESHARE2_PROVIDER=api SAFESHARE2_API_MODEL=deepseek-chat DEEPSEEK_API_KEY=sk-... \
+SAFESHARE2_PROVIDER=api SAFESHARE2_API_MODEL=deepseek-chat DEEPSEEK_API_KEY=<your-key> \
   streamlit run app/ui_streamlit.py
 ```
 
