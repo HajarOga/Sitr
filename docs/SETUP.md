@@ -9,11 +9,21 @@ is cloned from GitHub. The steps are the same; the notes underneath explain the 
 git clone <YOUR-REPO-URL> safeshare2 && cd safeshare2
 python3 -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env                                    # Windows: copy .env.example .env
+# put your own key in .env: DEEPSEEK_API_KEY=<key>
 python3 tests/test_safeshare2.py                        # the contract tests, no model needed
 streamlit run app/ui_streamlit.py                       # http://localhost:8501
 ```
 
-That is the whole setup **when the model is the hosted API** — the key ships in `.env`.
+That is the whole setup **when the model is the hosted API**. The key is not in the
+repository — copy the template and add your own. On Windows use `py` instead of `python3`
+if `python3` is not recognised, and run these in PowerShell opened in the project folder
+(right-click the folder in Explorer -> *Open in Terminal*).
+
+Downloaded the repository as a ZIP instead of cloning it? You get the same files with two
+differences worth knowing: there is no `.git` folder, so there is no history and no
+`git pull` to update it, and there is no `data/index`, so the first question on the Policy
+page downloads the policy embedder (about 470 MB, once) and builds the index.
 To run the model on this machine instead (`SAFESHARE2_PROVIDER=local`), add the two steps
 that need the weights:
 
