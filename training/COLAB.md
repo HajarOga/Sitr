@@ -58,6 +58,21 @@ in this project touches images, so the fix is to remove the package:
 The notebook does this in the install step. If you are running the steps by hand, do it before
 the first model call.
 
+**The second trap is `torchao`.** If Colab's copy is older than peft expects, *loading a trained
+adapter* fails with:
+
+```
+ImportError: Found an incompatible version of torchao. Found version 0.10.0,
+             but only versions above 0.16.0 are supported
+```
+
+Nothing in this project quantises with torchao, so remove it as well. The training itself is
+unaffected — the adapter on disk stays valid, so this costs one pip command, not a retrain:
+
+```
+!pip uninstall -y torchao
+```
+
 Check the GPU is really there before spending time:
 
 ```python
