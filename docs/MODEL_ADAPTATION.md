@@ -115,6 +115,27 @@ one row of the report corresponds to one failure you can name:
 | `leaked-by-omission` | reports nothing, or keeps what must go | silence leaks data |
 | `unsafe-substitute` | "replaces" a value with the value itself | a substitute must be fake |
 
+### Measured baseline — the first real GPU run
+
+Qwen2.5-3B-Instruct, untouched, with the prompt as it is, on the frozen 12-document test set
+(70 labelled values). Measured 2026-10-10, and reproduced after two corrections to the
+scoring itself (see `VERSION_LOG.md` 0.3.1 and the commits after it: an exact-string
+comparison and then an exact-value comparison each reported a false 100% leak rate).
+
+| metric | baseline |
+|---|---|
+| structured output | 88.3% |
+| citation validity | 96.7% |
+| action agreement | 92.0% |
+| finding recall | 71.4% |
+| **leak rate** | **34.7%** (17 of 49 values that had to go) |
+
+Read it as: the model understands the policy and applies it correctly most of the time, and
+still leaks one value in three, because it misses roughly a quarter of the values and fails
+completely on two documents (one came back as the whole document with no type at all). For a
+product whose purpose is not publishing personal data, 34.7% is disqualifying — that is the
+gap the adaptation step exists to close, and the number the "after" columns must beat.
+
 ### The measured case, not the assumed one
 
 Does the prompt alone produce good answers? Mostly yes — which is exactly why the honest
