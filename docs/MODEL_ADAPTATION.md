@@ -136,6 +136,31 @@ completely on two documents (one came back as the whole document with no type at
 product whose purpose is not publishing personal data, 34.7% is disqualifying — that is the
 gap the adaptation step exists to close, and the number the "after" columns must beat.
 
+### Measured after fine-tuning (LoRA)
+
+Same 12 documents, same frozen test set, same scoring. Qwen2.5-3B-Instruct plus a LoRA adapter
+trained on 108 pairs (3 epochs, 15.6 minutes on a T4, 0.96% of the weights trainable). Training
+loss 0.519 → 0.094.
+
+| metric | base | after LoRA |
+|---|---|---|
+| structured output | 88.3% | **100.0%** |
+| citation validity | 96.7% | **100.0%** |
+| action agreement | 92.0% | **100.0%** |
+| finding recall | 71.4% | **97.1%** |
+| **leak rate** | **34.7%** | **2.0%** (1 of 49 values) |
+
+The two documents that previously produced nothing usable now return findings, and the
+format failures are gone entirely. The single remaining leak is one value in `kyc-form-ar`,
+which the release still sends to a person — the safe default doing its job.
+
+**The honest caveat, and it belongs in the report:** the training documents and the test
+documents come from the same generator, so they share a writing style even though they share
+no values and no documents (that is checked on every data build). The model learned this
+template's task and format; part of the improvement may not carry over to documents from a
+different source. Closing that gap is what the two licensed public datasets are for — they
+are a different source, and the fine-tuned model has not been measured on them yet.
+
 ### The measured case, not the assumed one
 
 Does the prompt alone produce good answers? Mostly yes — which is exactly why the honest
