@@ -252,11 +252,20 @@ def _load_local():
                                              local_files_only=local_only)
     model = AutoModelForCausalLM.from_pretrained(
         config.MODEL_NAME, local_files_only=local_only, dtype=dtype)
+
+    adapter = None
+    if config.ADAPTER:
+        # the fine-tuned adapter sits on top of the frozen base weights: the base model is
+        # never modified, which is what makes the comparison honest
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, config.ADAPTER)
+        adapter = config.ADAPTER
+
     if device != "cpu":
         model = model.to(device)
     model.eval()
     _LOADED.update({"provider": "local", "model": config.MODEL_NAME, "device": device,
-                    "dtype": dtype_name, "path": state["path"]})
+                    "dtype": dtype_name, "path": state["path"], "adapter": adapter})
     return model, tokenizer
 
 

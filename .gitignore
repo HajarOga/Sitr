@@ -23,6 +23,9 @@ audit.sqlite3
 # model weights - never commit these. They are downloaded, not cloned:
 #     python -m scripts.setup_model
 models/
+predictions/
+training/lora_adapter/
+training/dpo_adapter/
 *.safetensors
 *.bin
 *.pt

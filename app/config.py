@@ -108,6 +108,11 @@ CHUNK_OVERLAP_LINES = int(os.getenv("SAFESHARE2_CHUNK_OVERLAP", "2"))
 
 # ------------------------------------------------------------------------ decisions
 ASK_THRESHOLD = float(os.getenv("SAFESHARE2_ASK_THRESHOLD", "0.80"))
+
+# The fine-tuned adapter from training/train_lora.py (or training/train_dpo.py).
+# Empty means: run the base model exactly as it came. This is what makes a
+# before/after comparison a setting rather than a code change.
+ADAPTER = os.getenv("SAFESHARE2_ADAPTER", "").strip() or None
 # Below this the item is not even a candidate for the model's own second look: it is
 # simply handed to a person.
 CONFIDENCE_FLOOR = float(os.getenv("SAFESHARE2_CONFIDENCE_FLOOR", "0.35"))

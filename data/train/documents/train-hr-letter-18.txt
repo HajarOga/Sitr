@@ -1,0 +1,11 @@
+Salary Certificate
+Reference: HR-LETTER-2026-118
+Employee name: Bandar Turki Al-Mutairi
+Employee ID: EMP-53307
+National ID: 1066554433
+Mobile: 0533221100
+Email: b.mutairi@example.com
+Address: Al Yasmin district, Street 7, Villa 22
+Date of birth: 30/01/1995
+This certificate is issued at the employee's request for a bank application and confirms the basic salary stated in the payroll system.
+Monthly volume: 8,940 units

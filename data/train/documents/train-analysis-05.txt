@@ -1,0 +1,12 @@
+Quarterly Handling Analysis
+Reference: ANALYSIS-2026-105
+Customer no.: CUST-7255
+Employee ID: EMP-52119
+Name: Abeer Sultan Al-Juhani
+National ID: 1077889900
+Address: Al Nakheel district, King Abdullah Road
+Date of birth: 07/09/1988
+Region: Eastern
+Average resolution time: 2.8 days
+Escalations: 7%
+VAT number: 310987654300003

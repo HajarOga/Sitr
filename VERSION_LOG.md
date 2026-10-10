@@ -103,3 +103,59 @@ pipeline.
 - 22 tests pass without the model (the contract, the JSON handling, the release, the audit).
 - `python -m scripts.smoke_test` runs the whole chain with the model installed: load,
   analyse, guard, write a release, record the audit, render all three dashboard pages.
+
+## 0.3.0 — the adaptation path: what is trained, and how it is measured
+
+The capstone brief requires prompt engineering **and** RAG always, and at least one of
+fine-tuning or alignment, with before-and-after numbers. This release adds the missing two
+halves — the training code and the measurement — and leaves the running application's
+behaviour unchanged.
+
+**Added**
+
+- `evaluation/reference.py` — what the policy expects for an item and a receiver. **Not
+  used by the application**; it exists so the training targets and the evaluation agree on
+  one definition instead of two.
+- `training/make_training_documents.py` — 24 of our own documents with labels, and a hard
+  check that no labelled value appears in the evaluation set. The check prints its count
+  every run; it is not a promise in a document.
+- `training/prepare_data.py` — prompt/completion pairs in exactly the shape the app sends
+  (same prompt builder, same policy block), plus two licensed public datasets on request.
+- `training/make_preference_pairs.py` — chosen/rejected pairs in five auditable kinds, one
+  per way this product could publish somebody's data: `confident-instead-of-asking`,
+  `invented-rule`, `policy-overruled`, `leaked-by-omission`, `unsafe-substitute`.
+- `training/train_lora.py`, `training/train_dpo.py`, `training/requirements-train.txt`,
+  `training/COLAB.md` — QLoRA then DPO on a free T4, with the exact cells to run.
+- `evaluation/metrics.py`, `evaluation/evaluate.py` — five metrics, `--live` / `--score` /
+  `--compare`. `--score` runs on any machine, so a Colab run can be scored at home.
+- `scripts/make_reference_runs.py` — three fixed answers (perfect, plausible-but-wrong,
+  silent) used to show that the metrics discriminate, and to keep that under test.
+- `docs/MODEL_ADAPTATION.md` — where the generative AI is, the adaptation path mapped to
+  files, why both fine-tuning and alignment, the prompt template verbatim, and every
+  dataset with its licence.
+
+**Changed**
+
+- `app/config.py` — `SAFESHARE2_ADAPTER`. The engine loads the fine-tuned adapter on top of
+  frozen base weights (`app/llm/engine.py`), so the base/adapted comparison is a setting,
+  not a code change, and the base weights are never modified.
+- `.gitignore` — `predictions/`, `training/lora_adapter/`, `training/dpo_adapter/`: run
+  artifacts, not source.
+
+**Verified**
+
+- 42 tests pass without the model, including four that pin the metrics down: a perfect
+  answer scores 100%, silence scores a 100% leak rate, and an invented rule is never
+  accepted — a plausible answer that redacts everything still leaks every value, because
+  no valid rule justifies the removal.
+- The harness was run on the fixed test set with three reference answers: perfect →
+  structured 100% / citation 100% / agreement 100% / leak 0%; naive (invents a rule) →
+  agreement 30% / leak 100%; silent → recall 0% / leak 100%.
+- All seven entry points (`--help` on the five training/evaluation modules plus
+  `make_reference_runs`) run in the project venv.
+
+**Not yet done, and it is not a code problem**
+
+- No training run has happened yet: the numbers above are from reference answers, not from
+  a model. `training/COLAB.md` §4 produces the real before/after table on a free T4, and
+  the adapters it saves are what the report should quote.

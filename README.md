@@ -188,6 +188,41 @@ the same consequence as a missing rule, which is `ASK_HUMAN`.
 
 ---
 
+## The adaptation path: prompt engineering, RAG, fine-tuning, alignment
+
+This is a generative-AI application in the sense the capstone brief means, and the four
+parts of the adaptation path are all present and separable:
+
+| part | where | state |
+|---|---|---|
+| prompt engineering | `app/llm/prompts.py` — the contract, the answer schema, the policy block | in use |
+| RAG | `app/policy/policy_index.py` — the rules are embedded in a Chroma collection and retrieved per receiver; `app/policy/qa.py` answers policy questions from what was retrieved | in use |
+| fine-tuning (LoRA/QLoRA) | `training/train_lora.py` on data from `training/prepare_data.py` | run on a free T4 |
+| alignment (DPO) | `training/make_preference_pairs.py` + `training/train_dpo.py` | run on a free T4 |
+| evaluation | `evaluation/` — five metrics, and a before/after table | runs anywhere |
+
+```bash
+python -m training.make_training_documents      # our own documents + labels
+python -m training.prepare_data --skip-public   # prompt/completion pairs
+python -m training.make_preference_pairs        # chosen/rejected pairs for DPO
+python -m training.train_lora                   # on a GPU; see training/COLAB.md
+python -m training.train_dpo                    # on a GPU
+python -m evaluation.evaluate --live --out predictions/base.jsonl
+SAFESHARE2_ADAPTER=training/lora_adapter python -m evaluation.evaluate --live --out predictions/lora.jsonl
+python -m evaluation.evaluate --compare predictions/base.jsonl predictions/lora.jsonl
+```
+
+The policy is never learned: it is retrieved and written into the prompt at request time,
+so a rule edited in the Policy page is in the next prompt with no restart and no
+retraining. What fine-tuning adds is the *shape* of the answer and this product's task
+vocabulary; what alignment adds is the *judgement* — asking a person rather than
+answering when the policy is silent.
+
+Two files to read, in this order: **`docs/MODEL_ADAPTATION.md`** (where the generative AI
+is, what is trained and why, the prompt template verbatim, and the datasets with their
+licences) and **`training/COLAB.md`** (the exact Colab steps, and the three
+`evaluation.evaluate --live` commands that produce the before/after numbers).
+
 ## How it works
 
 ```

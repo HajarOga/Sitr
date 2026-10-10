@@ -1,0 +1,12 @@
+Quarterly Handling Analysis
+Reference: ANALYSIS-2026-113
+Customer no.: CUST-7255
+Employee ID: EMP-52119
+Name: Abeer Sultan Al-Juhani
+National ID: 1077889900
+Address: Al Rehab district, Street 14, Building 3
+Date of birth: 07/09/1988
+Region: Eastern
+Average resolution time: 2.8 days
+Escalations: 7%
+الراتب الأساسي: 11,500.00 ريال

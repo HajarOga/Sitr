@@ -573,6 +573,72 @@ def test_end_to_end_with_the_model():
     return f"verified: {len(analysis.detections)} items, {len(analysis.calls)} model calls"
 
 
+# ------------------------------------------------------- the adaptation metrics
+
+
+def test_the_metrics_are_perfect_for_a_perfect_answer():
+    """A model that answers exactly what the policy expects must score 100%."""
+    from evaluation import metrics as M
+    from evaluation.reference import expected_findings
+
+    items = [{"text": "1045837299", "type": "NATIONAL_ID"},
+             {"text": "a.alharbi@example.com", "type": "EMAIL"},
+             {"text": "TKT-88213", "type": "CUSTOMER_ID"}]
+    receiver = "EXTERNAL_VENDOR"
+    answer = json.dumps({"findings": expected_findings(items, receiver)}, ensure_ascii=False)
+    score = M.score(answer, items, receiver, document_id="perfect")
+    summary = M.aggregate([score])
+    assert summary["structured"] == 1.0, summary
+    assert summary["citation"] == 1.0, summary
+    assert summary["action_agreement"] == 1.0, summary
+    assert summary["finding_recall"] == 1.0, summary
+    assert summary["leak_rate"] == 0.0, score.leaked
+
+
+def test_the_metrics_catch_a_model_that_reports_nothing():
+    """Silence is a leak, and the leak rate must say so."""
+    from evaluation import metrics as M
+
+    items = [{"text": "1045837299", "type": "NATIONAL_ID"},
+             {"text": "a.alharbi@example.com", "type": "EMAIL"}]
+    score = M.score('{"findings": []}', items, "EXTERNAL_VENDOR", document_id="silent")
+    summary = M.aggregate([score])
+    assert summary["finding_recall"] == 0.0
+    assert summary["leak_rate"] == 1.0, score.leaked
+    assert len(score.leaked) == 2
+
+
+def test_the_metrics_catch_an_invented_rule_and_a_kept_value():
+    from evaluation import metrics as M
+
+    items = [{"text": "1045837299", "type": "NATIONAL_ID"}]
+    invented = json.dumps({"findings": [{
+        "original_text": "1045837299", "type": "NATIONAL_ID", "action": "REMOVE",
+        "replacement": None, "confidence": 0.95, "rule_id": "VENDOR-PII-999",
+        "reason": "Looks sensitive."}]})
+    score = M.score(invented, items, "EXTERNAL_VENDOR", document_id="invented")
+    assert M.aggregate([score])["citation"] == 0.0, "an invented rule was accepted"
+    assert M.aggregate([score])["leak_rate"] == 1.0, "the value would still be published"
+
+    kept = json.dumps({"findings": [{
+        "original_text": "1045837299", "type": "NATIONAL_ID", "action": "KEEP",
+        "replacement": None, "confidence": 0.95, "rule_id": "VENDOR-PII-002",
+        "reason": "Kept."}]})
+    kept_score = M.score(kept, items, "EXTERNAL_VENDOR", document_id="kept")
+    assert M.aggregate([kept_score])["leak_rate"] == 1.0
+    assert M.aggregate([kept_score])["action_agreement"] == 0.0
+
+
+def test_a_fenced_answer_still_counts_as_structured():
+    """A markdown fence is a formatting wobble, not a broken answer - but it is noted."""
+    from evaluation import metrics as M
+
+    answer = '```json\n{"findings": []}\n```'
+    findings, problems = M.parse_answer(answer)
+    assert findings == []
+    assert any("fence" in problem for problem in problems), problems
+
+
 # ---------------------------------------------------------------------------- runner
 
 
