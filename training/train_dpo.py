@@ -82,6 +82,11 @@ def main() -> None:
     parser.add_argument("--lr", type=float, default=5e-6)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--grad-accum", type=int, default=8)
+    parser.add_argument("--low-memory", action="store_true",
+                        help="compute the reference model's log-probabilities up front and "
+                             "free it, halving peak memory during training at the cost of a "
+                             "pre-pass over the data. This is the setting to reach for when a "
+                             "T4 runs out of memory in DPO")
     parser.add_argument("--max-len", type=int, default=2048)
     parser.add_argument("--max-prompt-len", type=int, default=1536,
                         help="the prompt carries the whole policy block; the answer needs "
@@ -162,6 +167,8 @@ def main() -> None:
         "save_total_limit": 1, "report_to": "none",
         "max_length": args.max_len, "max_prompt_length": args.max_prompt_len,
         "gradient_checkpointing": True, "remove_unused_columns": False, "seed": 42,
+        # only applied when asked for, and only if this TRL knows the argument
+        "precompute_ref_log_probs": bool(args.low_memory),
     }
     kept, dropped = supported_kwargs(DPOConfig, settings)
     if dropped:
