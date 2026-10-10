@@ -750,6 +750,34 @@ def test_a_labelled_line_covers_its_value_but_a_document_echo_does_not():
     assert line_score["leak_rate"] == 0.0, line_score
 
 
+def test_the_dpo_length_check_counts_a_pair_before_the_model_loads():
+    """A pair longer than the budget is dropped by the trainer, and if all are dropped the run
+    dies with an error that mentions nothing about token budgets. This counts first."""
+    from training.train_dpo import length_report
+
+    class FakeTokenizer:
+        def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True):
+            return " ".join(message["content"] for message in messages)
+
+        def __call__(self, text, add_special_tokens=False):
+            return {"input_ids": list(range(len(text.split())))}
+
+    rows = [
+        {"messages": [{"role": "user", "content": "one two three"}],
+         "chosen": "a b", "rejected": "c d", "document": "d1", "receiver": "EXTERNAL_VENDOR"},
+        {"messages": [{"role": "user", "content": "x y z"}],
+         "chosen": "a b c d", "rejected": "c", "document": "d2", "receiver": "ANALYST"},
+    ]
+    totals, too_long = length_report(rows, FakeTokenizer(), max_len=100)
+    assert totals == [5, 7], totals          # prompt 3 + the longer answer (2, then 4)
+    assert too_long == [], too_long
+
+    totals, too_long = length_report(rows, FakeTokenizer(), max_len=5)
+    assert totals == [5, 7], totals
+    assert len(too_long) == 1 and "d2" in too_long[0], too_long
+    return "verified: an over-budget pair is identified before the model is loaded"
+
+
 def test_trainer_settings_are_filtered_to_what_is_actually_installed():
     """A renamed trainer argument must not be able to stop a half-hour GPU run.
 

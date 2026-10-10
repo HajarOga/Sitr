@@ -29,6 +29,29 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
+def length_report(rows: list[dict], tokenizer, max_len: int) -> tuple[list[int], list[str]]:
+    """How long each preference pair is, in tokens: the prompt plus the longer answer.
+
+    Worth measuring before loading the model, because the failure mode is invisible otherwise.
+    A pair longer than the budget is dropped by the trainer ("Dropping fully truncated
+    examples"), and if *every* pair is dropped the run dies deep inside the trainer with an
+    error that says nothing about token budgets. The policy block alone is about 1,200 tokens,
+    which is most of a small budget before any answer is added.
+    """
+    totals, too_long = [], []
+    for row in rows:
+        prompt = tokenizer.apply_chat_template(row["messages"], tokenize=False,
+                                               add_generation_prompt=True)
+        prompt_tokens = len(tokenizer(prompt, add_special_tokens=False)["input_ids"])
+        chosen = len(tokenizer(row["chosen"], add_special_tokens=False)["input_ids"])
+        rejected = len(tokenizer(row["rejected"], add_special_tokens=False)["input_ids"])
+        total = prompt_tokens + max(chosen, rejected)
+        totals.append(total)
+        if total > max_len:
+            too_long.append(f"{row.get('document', '?')}/{row.get('receiver', '?')}: {total}")
+    return totals, too_long
+
+
 def supported_kwargs(config_class, kwargs: dict) -> tuple[dict, dict]:
     """Keep only the arguments this installed version of the trainer accepts.
 
@@ -89,6 +112,21 @@ def main() -> None:
     tokenizer = AutoTokenizer.from_pretrained(args.base)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+
+    # Fail before the model is loaded if the budget cannot hold the data.
+    totals, too_long = length_report(rows, tokenizer, args.max_len)
+    median = sorted(totals)[len(totals) // 2]
+    print(f"pair length: median {median} tokens, longest {max(totals)}, "
+          f"budget --max-len {args.max_len}")
+    if len(too_long) == len(rows):
+        raise SystemExit(
+            f"every one of the {len(rows)} pairs is longer than --max-len {args.max_len} "
+            f"(median {median} tokens), so the trainer would drop all of them and fail with "
+            f"an error about the dataset instead. This is the fix:\n\n"
+            f"    python -m training.train_dpo --max-len {max(totals) + 256}\n")
+    if too_long:
+        print(f"warning: {len(too_long)} of {len(rows)} pairs are over budget and will be "
+              f"truncated, for example {too_long[0]}")
 
     model = AutoModelForCausalLM.from_pretrained(
         args.base, device_map="auto", torch_dtype=torch.float16,
