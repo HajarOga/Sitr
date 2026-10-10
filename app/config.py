@@ -1,4 +1,4 @@
-"""SafeShare2 - settings.
+"""SafeShare - settings.
 
 The difference from the first prototype, in one line: **the model is mandatory**.
 Here there is no rules-only fallback. Every finding, every action and every

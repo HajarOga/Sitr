@@ -1,7 +1,6 @@
 # SafeShare
 
-**One document in. A different safe version out for each receiver decided by a language
-model, with the rule behind every change written down.**
+**Create a safe version of a document for every receiver.**
 
 SafeShare is a prototype application built around a language model. The
 model reads the document, finds the personal data, chooses the action for the chosen
@@ -277,7 +276,7 @@ model runs*) and must be rotated and removed before this goes anywhere public.
 ```bash
 cd safeshare2
 git add .
-git commit -m "SafeShare2: purpose-bound release with a local model at the core"
+git commit -m "SafeShare: purpose-bound release with a local model at the core"
 git remote add origin git@github.com:<account>/safeshare2.git
 git push -u origin main
 ```

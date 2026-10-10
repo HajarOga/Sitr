@@ -60,7 +60,7 @@
 - The dashboard renders in both modes: `Hosted model — deepseek-chat` with the privacy line
   naming the endpoint, or `Model installed — Qwen/Qwen2.5-3B-Instruct`, mps/float16, 5.75 GB.
 
-## 0.1.0 — SafeShare2, the AI-core rebuild
+## 0.1.0 — SafeShare, the AI-core rebuild
 
 A rebuild of the SafeShare prototype with the model at the centre instead of beside the
 pipeline.

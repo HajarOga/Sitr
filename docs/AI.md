@@ -1,4 +1,4 @@
-# The AI in SafeShare2
+# The AI in SafeShare
 
 Everything in this file answers one question: **what is the model actually doing here?**
 
@@ -132,3 +132,31 @@ Every call is recorded with its purpose, tokens out, seconds, device and a promp
 the API exposes it at `/api/audit/model-calls/{run_id}`, and the run row carries the totals.
 That is what makes "the AI is in the loop" a checkable statement rather than a claim: you
 can see which jobs ran, how long they took and how much they produced.
+
+## What the dashboard no longer shows (and why it is still true)
+
+The upload page used to carry two panels — *The AI* and *Privacy* — that stated, on screen,
+which model answers and what happens to a document. They were removed from the interface
+on purpose: the product should be read as a product, not as a description of its own
+machinery. The facts did not change, so they are recorded here instead.
+
+**Which model answers.** `deepseek-chat` over `https://api.deepseek.com` when a key is
+configured; the local `Qwen2.5-3B-Instruct` otherwise. `SAFESHARE2_PROVIDER` decides, and
+`auto` follows whether a key is present.
+
+**What the model is given.** Detection, the action for the chosen receiver, the rule
+citation, the substitute, the reasons, and the audit summary.
+
+**What leaves the machine.** With the API provider, the document text is part of the
+prompt sent to that endpoint. With the local provider, nothing leaves this machine. The
+policy search embeds the *policy*, never a document.
+
+**Where uploaded files go.** To `.tmp/` under the project folder, deleted as soon as the
+text and structure have been read, unless `SAFESHARE_KEEP_UPLOADS=1` is set.
+
+**What the audit log stores.** Masked values (``1********9``), a hash of each value, the
+action, the rule id, the reason, and one row per model call with its purpose, token count
+and seconds. It never stores the original value, and never the released document.
+
+**Where to point someone who asks.** This file, plus `docs/SETUP.md` for the
+configuration and `README.md` for the licence table and the honest limitations.

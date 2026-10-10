@@ -1,4 +1,4 @@
-"""SafeShare2 - the dashboard.
+"""SafeShare - the dashboard.
 
     streamlit run app/ui_streamlit.py
 
@@ -161,97 +161,36 @@ def badge(text: str, action: str) -> str:
             f"border-radius:10px;font-size:0.78rem;font-weight:600'>{html.escape(text)}</span>")
 
 
-def model_panel(state: dict) -> None:
-    """Everything a reader needs to know about the AI in this build, in one place."""
-    if not state["installed"]:
-        st.error("**The model is not reachable - analysis is unavailable.**")
-        if state.get("provider") == "api":
-            st.markdown(
-                "This build has no rules-only fallback: the AI is what decides. Put the "
-                "key for the hosted model in `.env` at the project root:")
-            st.code("DEEPSEEK_API_KEY=<your key>", language="bash")
-            st.caption("Or run the model on this machine instead: "
-                       "`SAFESHARE2_PROVIDER=local`.")
-            return
-        st.markdown(
-            "This build has no rules-only fallback: the AI is what decides. Install it "
-            "once (about 6 GB, kept in your Hugging Face cache):")
-        st.code("python -m scripts.setup_model", language="bash")
-        if state["partial"]:
-            st.warning("An interrupted download is present and will be resumed: "
-                       f"missing {', '.join(state['missing_files']) or 'weights'}.")
-        return
-
-    if state.get("provider") == "api":
-        st.success(f"**Hosted model** — `{state['model']}`")
-        st.markdown(
-            f"- Endpoint: `{state.get('base_url', '')}`\n"
-            f"- Key: configured (`{state.get('api_key_hint', '')}`)\n"
-            f"- Decides: detection, action, rule citation, the substitute, the reasons\n"
-            f"- **Document text is sent to that endpoint** - see the Privacy note")
-        return
-
-    st.success(f"**Model installed** — `{state['model']}`")
-    st.markdown(
-        f"- Device: `{state.get('device', '?')}`   dtype: `{state.get('dtype', '?')}`\n"
-        f"- On disk: {state['size_gb']:.2f} GB in `{state['cache_dir']}`\n"
-        f"- Decides: detection, action, rule citation, the substitute, the reasons\n"
-        f"- Runs locally: no document text leaves this machine")
-
-
 # ------------------------------------------------------------------ page 1: upload
 
 
 def page_upload() -> None:
-    st.title("SafeShare2")
+    st.title("SafeShare")
     lib = default_library()
     state = engine.status()
-    st.caption("Create a safe version of a document for every receiver. "
-               f"The decisions are made by {state.get('model') or engine.active_model()}"
-               + (", running locally."
-                  if state.get("provider") == "local"
-                  else f", called over the API at `{state.get('base_url', '')}`."))
+    st.caption("Create a safe version of a document for every receiver.")
 
-    left, right = st.columns([2, 1])
+    upload = st.file_uploader("Upload a document", type=["pdf", "docx", "txt"])
+    samples = sorted(SAMPLE_DIR.glob("*.docx")) + sorted(SAMPLE_DIR.glob("*.txt"))
+    sample = st.selectbox("...or open a sample document",
+                          ["none"] + [p.name for p in samples])
 
-    with left:
-        upload = st.file_uploader("Upload a document", type=["pdf", "docx", "txt"])
-        samples = sorted(SAMPLE_DIR.glob("*.docx")) + sorted(SAMPLE_DIR.glob("*.txt"))
-        sample = st.selectbox("...or open a sample document",
-                              ["none"] + [p.name for p in samples])
-
-        receiver_keys = list(lib.receivers)
-        default = "EXTERNAL_VENDOR" if "EXTERNAL_VENDOR" in receiver_keys else receiver_keys[0]
-        receiver = st.selectbox(
-            "Who is receiving it?", receiver_keys,
-            index=receiver_keys.index(default),
-            format_func=lambda key: f"{lib.receivers[key].label} - {lib.receivers[key].purpose}")
-        # The purpose is part of the prompt the model reads and it is stored with the audit
-        # record, but asking for it here duplicated the receiver (the dropdown above states
-        # it), so it comes from the receiver itself.
-        purpose = lib.receivers[receiver].purpose
-        go = st.button("Analyze with the model", type="primary",
-                       disabled=not state["installed"])
-
-    with right:
-        st.subheader("The AI")
-        model_panel(state)
-        st.subheader("Privacy")
-        st.markdown(
-            f"- Temporary files: `{config.TMP_DIR}`\n"
-            f"- Deleted after reading: **{'no' if config.KEEP_UPLOADS else 'yes'}**\n"
-            f"- Documents sent to an external API: "
-            f"**{'yes — ' + state.get('base_url', '') if state.get('provider') == 'api' else 'no'}**\n"
-            f"- Audit log: masked values, hashes, and model call metadata only\n"
-            f"- Policy version: `{lib.version}`")
+    receiver_keys = list(lib.receivers)
+    default = "EXTERNAL_VENDOR" if "EXTERNAL_VENDOR" in receiver_keys else receiver_keys[0]
+    receiver = st.selectbox(
+        "Who is receiving it?", receiver_keys,
+        index=receiver_keys.index(default),
+        format_func=lambda key: f"{lib.receivers[key].label} - {lib.receivers[key].purpose}")
+    # The purpose is stored with the audit record, so a release can be justified later.
+    purpose = lib.receivers[receiver].purpose
+    go = st.button("Analyze", type="primary", disabled=not state["installed"])
 
     if not state["installed"]:
         st.divider()
-        st.info("Set up the model, then reload this page — the Analyze button appears "
-                "when the AI is ready."
-                + (" Put `DEEPSEEK_API_KEY` in `.env`."
+        st.info("SafeShare is not configured yet — the Analyze button appears once it is."
+                + (" Add your API key to `.env` and reload this page."
                    if state.get("provider") == "api"
-                   else " Run `python -m scripts.setup_model` to install it."))
+                   else " Run `python -m scripts.setup_model`, then reload this page."))
         return
     if not go:
         return
@@ -836,33 +775,20 @@ def policy_history_tab(editor: PolicyEditor) -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="SafeShare2", page_icon="🔒", layout="wide")
+    st.set_page_config(page_title="SafeShare", page_icon="🔒", layout="wide")
     lib = default_library()
     state = engine.status()
 
     with st.sidebar:
-        st.markdown("### SafeShare2")
+        st.markdown("### SafeShare")
         pages = ["Upload", "Review", "Audit log", "Policy"]
         page = st.radio("Page", pages,
                         index=pages.index(st.session_state.get("page", "Upload")))
         st.session_state["page"] = page
         st.divider()
-        st.markdown("**AI**")
-        if state["installed"] and state.get("provider") == "api":
-            st.caption(f"`{state['model']}`\n\nhosted API — {state.get('base_url', '')}")
-        elif state["installed"]:
-            st.caption(f"`{state['model']}`\n\n"
-                       f"device `{state.get('device', '?')}` in `{state.get('dtype', '?')}`")
-        elif state.get("provider") == "api":
-            st.caption("no API key — put `DEEPSEEK_API_KEY` in `.env`")
-        else:
-            st.caption("not installed — run `python -m scripts.setup_model`")
         st.markdown("**Policy**")
         st.caption(f"{len(lib.rules)} rules across {len(lib.receivers)} receivers, "
                    f"version {lib.version}")
-        st.caption("The model decides inside the policy; the code enforces the contract "
-                   "(valid rule cited, safe substitute, a human below the confidence "
-                   "threshold).")
         st.markdown("**Policy search**")
         try:
             index_state = get_index().status()

@@ -1,4 +1,4 @@
-"""SafeShare2 tests - the contract, not the model.
+"""SafeShare tests - the contract, not the model.
 
     python3 tests/test_safeshare2.py
 
