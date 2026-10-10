@@ -1,0 +1,57 @@
+{
+ "document_id": "kyc-form-ar",
+ "receiver": "CUSTOM",
+ "language": "mixed",
+ "source": "same document as data/test/kyc-form-ar, addressed to a receiver with no rules - built by scripts/make_no_rule_set.py",
+ "spans": [
+  {
+   "text": "عبدالله محمد الحربي",
+   "type": "PERSON_NAME",
+   "start": 65,
+   "end": 84
+  },
+  {
+   "text": "Sultan Abdulaziz Al-Shammari",
+   "type": "PERSON_NAME",
+   "start": 91,
+   "end": 119
+  },
+  {
+   "text": "1045837299",
+   "type": "NATIONAL_ID",
+   "start": 132,
+   "end": 142
+  },
+  {
+   "text": "A12345678",
+   "type": "PASSPORT_NUMBER",
+   "start": 155,
+   "end": 164
+  },
+  {
+   "text": "٠٥٥٤٤٥٥٦٦٧",
+   "type": "PHONE",
+   "start": 173,
+   "end": 183
+  },
+  {
+   "text": "0551234567",
+   "type": "PHONE",
+   "start": 192,
+   "end": 202
+  },
+  {
+   "text": "حي النرجس، شارع ١٢، فيلا ٣٤",
+   "type": "ADDRESS",
+   "start": 212,
+   "end": 239
+  },
+  {
+   "text": "SA70 8000 0000 6080 1016 9999",
+   "type": "IBAN",
+   "start": 246,
+   "end": 275
+  }
+ ],
+ "note": "The correct answer for every value here is ASK_HUMAN: the policy says nothing about this receiver, and a receiver with no written policy must not receive a guessed decision."
+}

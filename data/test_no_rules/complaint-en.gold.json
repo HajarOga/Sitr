@@ -1,0 +1,45 @@
+{
+ "document_id": "complaint-en",
+ "receiver": "CUSTOM",
+ "language": "en",
+ "source": "same document as data/test/complaint-en, addressed to a receiver with no rules - built by scripts/make_no_rule_set.py",
+ "spans": [
+  {
+   "text": "Abdullah Mohammed Alharbi",
+   "type": "PERSON_NAME",
+   "start": 65,
+   "end": 90
+  },
+  {
+   "text": "1045837299",
+   "type": "NATIONAL_ID",
+   "start": 104,
+   "end": 114
+  },
+  {
+   "text": "0551234567",
+   "type": "PHONE",
+   "start": 123,
+   "end": 133
+  },
+  {
+   "text": "a.alharbi@example.com",
+   "type": "EMAIL",
+   "start": 141,
+   "end": 162
+  },
+  {
+   "text": "Al Narjis district, Street 12, Villa 34",
+   "type": "ADDRESS",
+   "start": 172,
+   "end": 211
+  },
+  {
+   "text": "CUST-4471",
+   "type": "CUSTOMER_ID",
+   "start": 226,
+   "end": 235
+  }
+ ],
+ "note": "The correct answer for every value here is ASK_HUMAN: the policy says nothing about this receiver, and a receiver with no written policy must not receive a guessed decision."
+}

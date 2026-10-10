@@ -1,0 +1,12 @@
+فاتورة مورد - Vendor Invoice
+Reference: VENDOR-INVOICE-2026-008
+الاسم: ريم فهد الدوسري
+Contact person: Khalid Ibrahim Al-Otaibi
+Mobile: 0501112233
+Email: n.qahtani@example.com
+IBAN: SA65 8000 0000 6080 1016 4560
+العنوان: Al Narjis district, Street 12, Villa 34
+VAT number: 310123456700003
+Service: annual maintenance for 12 lifts
+Total: 48,500.00 SAR
+Care plan: premium

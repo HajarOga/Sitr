@@ -40,10 +40,10 @@ from evaluation import metrics as M                               # noqa: E402
 TEST_DIR = ROOT / "data" / "test"
 
 
-def test_cases() -> list[dict]:
+def test_cases(directory: Path | None = None) -> list[dict]:
     """The fixed test set: one case per document, with its labels."""
     cases = []
-    for gold_path in sorted(TEST_DIR.glob("*.gold.json")):
+    for gold_path in sorted((directory or TEST_DIR).glob("*.gold.json")):
         gold = json.loads(gold_path.read_text(encoding="utf-8"))
         text_path = gold_path.with_name(gold_path.name.replace(".gold.json", ".txt"))
         if not text_path.exists():
@@ -53,15 +53,17 @@ def test_cases() -> list[dict]:
                       "items": [{"text": s["text"], "type": s["type"]}
                                 for s in gold["spans"]]})
     if not cases:
-        raise SystemExit(f"no test cases in {TEST_DIR}. Run:\n"
-                         f"  python -m scripts.make_test_set")
+        raise SystemExit(f"no test cases in {directory or TEST_DIR}. Run:\n"
+                         f"  python -m scripts.make_test_set\n"
+                         f"  python -m scripts.make_no_rule_set   (for data/test_no_rules)")
     return cases
 
 
 # ------------------------------------------------------------------------------- live
 
 
-def run_live(out_path: Path, document_ids: list[str] | None = None) -> dict:
+def run_live(out_path: Path, document_ids: list[str] | None = None,
+             directory: Path | None = None) -> dict:
     """Ask the configured model for every test document and save the raw answers."""
     lib = default_library()
     state = engine.status()
@@ -69,7 +71,7 @@ def run_live(out_path: Path, document_ids: list[str] | None = None) -> dict:
         raise SystemExit("the model is not configured. Set a key in .env, or install the "
                          "local model with `python -m scripts.setup_model`.")
 
-    cases = test_cases()
+    cases = test_cases(directory)
     if document_ids:
         cases = [c for c in cases if c["document_id"] in document_ids]
 
@@ -140,6 +142,9 @@ def main() -> int:
                         help="two or more predictions files, side by side")
     parser.add_argument("--docs", nargs="+", default=None,
                         help="only these documents (with --live)")
+    parser.add_argument("--test-dir", default=None,
+                        help="which case directory to run: data/test (default) or "
+                             "data/test_no_rules, for the receiver with no policy")
     parser.add_argument("--json", default=None, help="write the metrics here")
     args = parser.parse_args()
 
@@ -158,7 +163,8 @@ def main() -> int:
         return 0
 
     if args.live:
-        run_live(Path(args.out), args.docs)
+        run_live(Path(args.out), args.docs,
+                 Path(args.test_dir) if args.test_dir else None)
 
     path = Path(args.score or args.out)
     if not path.exists():

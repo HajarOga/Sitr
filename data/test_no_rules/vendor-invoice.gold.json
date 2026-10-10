@@ -1,0 +1,45 @@
+{
+ "document_id": "vendor-invoice",
+ "receiver": "CUSTOM",
+ "language": "mixed",
+ "source": "same document as data/test/vendor-invoice, addressed to a receiver with no rules - built by scripts/make_no_rule_set.py",
+ "spans": [
+  {
+   "text": "ريم فهد الدوسري",
+   "type": "PERSON_NAME",
+   "start": 71,
+   "end": 86
+  },
+  {
+   "text": "Khalid Ibrahim Al-Otaibi",
+   "type": "PERSON_NAME",
+   "start": 103,
+   "end": 127
+  },
+  {
+   "text": "0501112233",
+   "type": "PHONE",
+   "start": 136,
+   "end": 146
+  },
+  {
+   "text": "n.qahtani@example.com",
+   "type": "EMAIL",
+   "start": 154,
+   "end": 175
+  },
+  {
+   "text": "SA65 8000 0000 6080 1016 4560",
+   "type": "IBAN",
+   "start": 182,
+   "end": 211
+  },
+  {
+   "text": "Al Narjis district, Street 12, Villa 34",
+   "type": "ADDRESS",
+   "start": 221,
+   "end": 260
+  }
+ ],
+ "note": "The correct answer for every value here is ASK_HUMAN: the policy says nothing about this receiver, and a receiver with no written policy must not receive a guessed decision."
+}
