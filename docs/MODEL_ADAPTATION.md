@@ -190,12 +190,20 @@ with no written policy must not receive a guessed decision.
 | source | what it is | licence | how we use it |
 |---|---|---|---|
 | our own synthetic documents | 24 training + 12 test documents, Arabic/English/mixed, generated with labelled values | ours | training targets, and the fixed evaluation set |
-| `aniket-curlscape/pii-masking-english-1k` | 1,000 English masking examples | see the data card | volume for fine-tuning (optional flag) |
-| `mabahboh/sitr-arabic-pii` | Arabic PII examples | Apache-2.0 | **sampled, 2,500 maximum**, for Arabic coverage |
+| `gretelai/gretel-pii-masking-en-v1` | 50,000 English documents with labelled entities | **Apache-2.0** | volume for fine-tuning (optional flag) |
+| `mabahboh/sitr-arabic-pii` | 14,288 Arabic documents with labelled entities | **Apache-2.0** | **sampled, 2,500 maximum**, for Arabic coverage |
 
-Checked and rejected: `ai4privacy/pii-masking-65k` (no licence declared, no Arabic) — we
-copied its *taxonomy* of sensitive types, not its content. Any CC-BY-**NC** dataset is out
-because the goal is to sell this.
+Checked and rejected: `aniket-curlscape/pii-masking-english-1k` — its licence is declared
+only as *"other"*, which is not a licence you can put in a report. `ai4privacy/pii-masking-65k`
+— no licence declared, no Arabic; we copied its *taxonomy* of sensitive types, not its
+content. Any CC-BY-**NC** dataset is out because the goal is to sell this.
+
+Their label vocabularies are not ours, so labels are mapped onto our twelve categories and
+anything unmapped (`vehicle_plate`, `medicine_name`, `ipv4`) is dropped rather than forced
+into a category. Ten of the twelve categories are covered by the two sets
+(`PERSON_NAME`, `NATIONAL_ID`, `DATE_OF_BIRTH`, `ADDRESS`, `PHONE`, `CUSTOMER_ID`,
+`BANK_ACCOUNT`, `EMAIL`, `EMPLOYEE_ID`, `PASSPORT_NUMBER`); `IBAN` and `COMPANY_IDENTIFIER`
+come from our own documents.
 
 Every source is named here and in your report; `training/prepare_data.py` prints the list
 of what it actually touched, with the licence, every time it runs.

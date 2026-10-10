@@ -177,10 +177,14 @@ def main() -> None:
              f"{len(rows_for_documents()) - 1} documents, Arabic / English / mixed, values "
              "generated with their labels",
              "ours", "training targets and the fixed evaluation set (data/test, never trained on)"],
-            ["aniket-curlscape/pii-masking-english-1k", "1,000 English masking examples",
-             "see the data card on Hugging Face", "volume for fine-tuning (optional step)"],
+            ["gretelai/gretel-pii-masking-en-v1",
+             "50,000 English documents with labelled entities",
+             "Apache-2.0", "volume for fine-tuning (optional step)"],
             ["mabahboh/sitr-arabic-pii", "Arabic PII examples",
              "Apache-2.0", "Arabic coverage, sampled at 2,500 maximum"],
+            ["aniket-curlscape/pii-masking-english-1k",
+             "checked, then rejected: licence declared only as \"other\"",
+             "other (not usable)", "nothing - replaced by the Apache-2.0 set above"],
             ["ai4privacy/pii-masking-65k", "checked, then rejected: no licence declared, no Arabic",
              "none declared", "only its taxonomy of sensitive types was copied"],
         ],
@@ -231,7 +235,7 @@ What is NOT in this file
 ------------------------
 The two public datasets named in the brief are fetched from Hugging Face by
 `python -m training.prepare_data` (without `--skip-public`) rather than redistributed here:
-  aniket-curlscape/pii-masking-english-1k   see the data card
+  gretelai/gretel-pii-masking-en-v1         Apache-2.0, 50,000 docs, sampled
   mabahboh/sitr-arabic-pii                  Apache-2.0, sampled at 2,500 maximum
 So the full training run uses these files plus those two sources. This file is the part
 that is ours.

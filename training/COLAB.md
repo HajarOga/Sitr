@@ -36,7 +36,17 @@ You want to see `Tesla T4` and about 15 GB. If it says no GPU, the runtime type 
 ```
 
 Leave `--skip-public` off if you want the two public datasets in the mix; that step
-downloads from Hugging Face and needs `datasets` (installed above).
+downloads from Hugging Face and needs `datasets` (installed above):
+
+- `gretelai/gretel-pii-masking-en-v1` — 50,000 English documents, **Apache-2.0**
+- `mabahboh/sitr-arabic-pii` — 14,288 Arabic documents, **Apache-2.0**, sampled at 2,500
+
+Their labels are not our twelve categories, so `prepare_data.py` maps them and drops what
+does not fit. Run it once with small limits to see the counts before a long run:
+
+```python
+!python -m training.prepare_data --english-limit 60 --arabic-limit 60
+```
 
 Look at what it built before training on it — one row, either side:
 

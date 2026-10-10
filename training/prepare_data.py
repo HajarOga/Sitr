@@ -49,23 +49,83 @@ RECEIVERS = ["EXTERNAL_VENDOR", "INTERNAL_HR", "ANALYST", "CUSTOMER_SUPPORT", "C
 
 # third-party label -> our category. Their vocabulary is not ours, so it is mapped, and
 # anything unmapped is dropped rather than guessed at.
+# Written against the label vocabularies that are actually in the two datasets - the
+# values below were read off them, not guessed at:
+#   gretel:  medical_record_number, date_of_birth, ssn, customer_id, email, employee_id,
+#            first_name, name, credit_card_number, phone_number, last_name, address, city...
+#   sitr:    private_phone, private_email, national_id, iqama, private_date, employee_id,
+#            account_number, private_address, passport_number, gulf_iban, national_address...
+# Anything not in this map is dropped rather than forced into a category: SafeShare has
+# twelve types, and a label like `medicine_name` or `vehicle_plate` is not one of them.
 LABEL_MAP = {
+    # names
     "givenname": "PERSON_NAME", "surname": "PERSON_NAME", "name": "PERSON_NAME",
-    "firstname": "PERSON_NAME", "lastname": "PERSON_NAME", "person": "PERSON_NAME",
-    "username": "PERSON_NAME", "prefix": "PERSON_NAME",
-    "اسم": "PERSON_NAME", "الاسم": "PERSON_NAME",
-    "email": "EMAIL", "mail": "EMAIL", "بريد": "EMAIL",
-    "tel": "PHONE", "phone": "PHONE", "telephone": "PHONE", "mobile": "PHONE",
-    "هاتف": "PHONE", "جوال": "PHONE",
+    "firstname": "PERSON_NAME", "first_name": "PERSON_NAME",
+    "lastname": "PERSON_NAME", "last_name": "PERSON_NAME", "person": "PERSON_NAME",
+    "username": "PERSON_NAME", "user_name": "PERSON_NAME", "prefix": "PERSON_NAME",
+    "middle_name": "PERSON_NAME", "father_name": "PERSON_NAME", "mother_name": "PERSON_NAME",
+    "اسم": "PERSON_NAME", "الاسم": "PERSON_NAME", "اسم_الشخص": "PERSON_NAME",
+    # contact
+    "email": "EMAIL", "mail": "EMAIL", "private_email": "EMAIL", "بريد": "EMAIL",
+    "tel": "PHONE", "phone": "PHONE", "phone_number": "PHONE", "telephone": "PHONE",
+    "mobile": "PHONE", "private_phone": "PHONE", "gulf_phone": "PHONE",
+    "هاتف": "PHONE", "جوال": "PHONE", "رقم_الجوال": "PHONE",
+    # national identifiers - several countries' names for the same thing, one category
     "idcard": "NATIONAL_ID", "id_number": "NATIONAL_ID", "nationalid": "NATIONAL_ID",
+    "national_id": "NATIONAL_ID", "ssn": "NATIONAL_ID", "tax_id": "NATIONAL_ID",
+    "iqama": "NATIONAL_ID", "spoken_iqama": "NATIONAL_ID", "kuwait_civil_id": "NATIONAL_ID",
+    "syria_national_id": "NATIONAL_ID", "visitor_number": "NATIONAL_ID",
     "هوية": "NATIONAL_ID", "رقم_الهوية": "NATIONAL_ID",
-    "iban": "IBAN", "bank": "IBAN", "account": "BANK_ACCOUNT",
-    "address": "ADDRESS", "city": "ADDRESS", "street": "ADDRESS", "location": "ADDRESS",
+    # money
+    "iban": "IBAN", "gulf_iban": "IBAN", "bank": "IBAN",
+    "account": "BANK_ACCOUNT", "account_number": "BANK_ACCOUNT",
+    "bank_routing_number": "BANK_ACCOUNT", "credit_card": "BANK_ACCOUNT",
+    "credit_card_number": "BANK_ACCOUNT",
+    # where someone is
+    "address": "ADDRESS", "street": "ADDRESS", "street_address": "ADDRESS",
+    "location": "ADDRESS", "city": "ADDRESS", "state": "ADDRESS",
+    "postcode": "ADDRESS", "postal_code": "ADDRESS", "private_address": "ADDRESS",
+    "national_address": "ADDRESS", "short_address": "ADDRESS",
+    "building_number": "ADDRESS", "boundary_number": "ADDRESS",
     "عنوان": "ADDRESS",
+    # identity documents and dates
     "birthdate": "DATE_OF_BIRTH", "date_of_birth": "DATE_OF_BIRTH", "dob": "DATE_OF_BIRTH",
-    "passport": "PASSPORT_NUMBER", "customer_id": "CUSTOMER_ID",
-    "employee_id": "EMPLOYEE_ID", "customerid": "CUSTOMER_ID", "employeeid": "EMPLOYEE_ID",
+    "passport": "PASSPORT_NUMBER", "passport_number": "PASSPORT_NUMBER",
+    # references
+    "customer_id": "CUSTOMER_ID", "customerid": "CUSTOMER_ID",
+    "employee_id": "EMPLOYEE_ID", "employeeid": "EMPLOYEE_ID", "staff_id": "EMPLOYEE_ID",
 }
+
+
+def read_entities(raw) -> list[tuple[str, str]]:
+    """Pull (value, label) out of any shape these two datasets use.
+
+    They do not agree with each other, and one of them stores the list as a *string*:
+      gretel: "[{'entity': 'Urvashi Jaggi', 'types': ['name']}, ...]"  (a string)
+      sitr:   [{'start': 216, 'end': 225, 'label': 'vehicle_plate', 'text': 'ه س ص 900'}]
+    Reading only one shape silently yields nothing, so both are handled here.
+    """
+    import ast                                                   # noqa: PLC0415
+
+    if isinstance(raw, str):
+        try:
+            raw = ast.literal_eval(raw)
+        except (ValueError, SyntaxError):
+            return []
+    if not isinstance(raw, list):
+        return []
+
+    out: list[tuple[str, str]] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        value = entry.get("value") or entry.get("text") or entry.get("entity") or ""
+        label = entry.get("label") or entry.get("type") or ""
+        if not label and isinstance(entry.get("types"), list) and entry["types"]:
+            label = entry["types"][0]
+        if str(value).strip() and str(label).strip():
+            out.append((str(value), str(label)))
+    return out
 
 
 def map_label(label: str) -> str | None:
@@ -132,19 +192,14 @@ def from_public_dataset(source: str, limit: int, field_names: list[str],
                 break
         if not text.strip():
             continue
-        raw = row.get("privacy_mask") or row.get("labels") or row.get("entities") or []
+        raw = (row.get("privacy_mask") or row.get("labels") or row.get("entities")
+               or row.get("spans") or [])
         items, seen = [], set()
-        if isinstance(raw, list):
-            for entry in raw:
-                if isinstance(entry, dict):
-                    value = entry.get("value") or entry.get("text") or ""
-                    label = entry.get("label") or entry.get("type") or ""
-                else:
-                    value, label = "", str(entry)
-                pii_type = map_label(str(label))
-                if pii_type and str(value).strip() and str(value) not in seen:
-                    seen.add(str(value))
-                    items.append({"text": str(value), "type": pii_type})
+        for value, label in read_entities(raw):
+            pii_type = map_label(label)
+            if pii_type and value not in seen:
+                seen.add(value)
+                items.append({"text": value, "type": pii_type})
         if not items:
             continue
         for receiver in ("EXTERNAL_VENDOR", "INTERNAL_HR", "ANALYST"):
@@ -158,7 +213,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build SafeShare training data")
     parser.add_argument("--skip-public", action="store_true",
                         help="only our own documents: no downloads, no `datasets` needed")
-    parser.add_argument("--english-source", default="aniket-curlscape/pii-masking-english-1k")
+    parser.add_argument("--english-source", default="gretelai/gretel-pii-masking-en-v1",
+                        help="Apache-2.0. The earlier candidate, "
+                             "aniket-curlscape/pii-masking-english-1k, declares its licence "
+                             "only as 'other', which cannot be defended in a report")
     parser.add_argument("--english-limit", type=int, default=1000)
     parser.add_argument("--arabic-source", default="mabahboh/sitr-arabic-pii")
     parser.add_argument("--arabic-limit", type=int, default=2500,
@@ -175,7 +233,7 @@ def main() -> None:
 
     if not args.skip_public:
         english, english_meta = from_public_dataset(
-            args.english_source, args.english_limit, ["text", "source_text"], "see the card")
+            args.english_source, args.english_limit, ["text", "source_text"], "Apache-2.0")
         arabic, arabic_meta = from_public_dataset(
             args.arabic_source, args.arabic_limit, ["text", "source_text"], "Apache-2.0")
         pairs += english + arabic
