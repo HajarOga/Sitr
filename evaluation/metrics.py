@@ -30,6 +30,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
+from app.pii_detection.normalize import fold
 from app.pii_detection.schema import Action, PiiType
 from app.rules.store import RulesLibrary, library as default_library
 from evaluation.reference import action_expected, must_not_be_visible
@@ -66,6 +67,26 @@ class DocumentScore:
             "actions_checked": self.actions_checked, "found": self.found,
             "leaked": self.leaked, "problems": self.problems[:6],
         }
+
+
+def same_value(left: str, right: str) -> bool:
+    """Would the application consider these two strings the same value?
+
+    The guards compare a value to the document through `fold()`, which maps Arabic-Indic
+    digits to Western ones and unifies the Arabic letter variants (أ/إ/آ/ا, ة/ه) and strips
+    diacritics. The evaluation must use the same rule, or it scores a correct answer as
+    missed: the model reporting 0551234567 for a document that says ٠٥٥١٢٣٤٥٦٧ is right, and
+    an exact comparison calls it nothing at all. That mistake produced a "0.0% recall, 100%
+    leak" baseline from a run whose citations were 96.7% valid.
+    """
+    def key(value: str) -> str:
+        folded, _ = fold(str(value))
+        return " ".join(folded.split()).strip(" \t\"'“”«»:،.").casefold()
+
+    left_key, right_key = key(left), key(right)
+    if not left_key or not right_key:
+        return False
+    return left_key == right_key
 
 
 def parse_answer(raw) -> tuple[list[dict], list[str]]:
@@ -149,13 +170,14 @@ def score(raw, labelled: list[dict], receiver: str,
         reported_items=len(findings), structured_ok=0, citations_ok=0, citations_made=0,
         actions_ok=0, actions_checked=0, found=0, problems=list(problems), raw_text=raw)
 
-    # match reported items to labelled ones by value; the guards do the same by searching
-    # the document, so a value that is not there is not a finding
-    by_value: dict[str, dict] = {}
-    for finding in findings:
-        value = str(finding.get("original_text") or "").strip()
-        if value:
-            by_value.setdefault(value, finding)
+    # match reported items to labelled ones the way the application does - by folded value,
+    # not by exact string - so a correct answer in a different digit style still counts
+    def lookup(value: str) -> dict | None:
+        for finding in findings:
+            reported = str(finding.get("original_text") or "")
+            if reported and same_value(reported, value):
+                return finding
+        return None
 
     if findings:
         score.structured_ok = sum(1 for f in findings if is_structured(f))
@@ -169,7 +191,7 @@ def score(raw, labelled: list[dict], receiver: str,
 
     for item in labelled:
         value, pii_type = item["text"], item["type"]
-        finding = by_value.get(value)
+        finding = lookup(value)
         if finding is None:
             continue                      # not reported at all: counted as a leak below
         score.found += 1
@@ -180,7 +202,7 @@ def score(raw, labelled: list[dict], receiver: str,
 
     score.must_go = len(must_not_be_visible(labelled, receiver, lib))
     for item in must_not_be_visible(labelled, receiver, lib):
-        finding = by_value.get(item["text"])
+        finding = lookup(item["text"])
         action = str(finding.get("action", "")).upper() if finding else ""
         rule = lib.rule_for(receiver, item["type"])
         # kept, unreported, or reported without a rule behind a removal: still visible

@@ -672,6 +672,36 @@ def test_the_metrics_catch_an_invented_rule_and_a_kept_value():
     assert M.aggregate([kept_score])["action_agreement"] == 0.0
 
 
+def test_a_value_in_another_digit_style_is_the_same_value():
+    """The model may answer 0551234567 for a document that says ٠٥٥١٢٣٤٥٦٧.
+
+    The application folds digits and Arabic letter variants before comparing, so the
+    evaluation must too - comparing exactly scored a correct answer as missed and produced
+    a "0.0% recall, 100% leak" baseline from a run whose citations were 96.7% valid.
+    """
+    from evaluation import metrics as M
+
+    assert M.same_value("٠٥٥١٢٣٤٥٦٧", "0551234567")
+    assert M.same_value("0551234567", "٠٥٥١٢٣٤٥٦٧")
+    assert M.same_value("عبدالله محمد الحربي", "عبدالله محمد الحربي")
+    assert M.same_value("أحمد الغامدي", "احمد الغامدي")      # hamza variant
+    assert M.same_value(" \"1045837299\" ", "1045837299")     # quoted, padded
+    assert not M.same_value("0551234567", "0509999999")
+    assert not M.same_value("", "0551234567")
+
+    # VENDOR-PII-003 is REMOVE, not REPLACE: a vendor may not receive a customer's phone
+    # number at all. Using the action the policy actually names is the point of the test.
+    labelled = [{"text": "٠٥٥١٢٣٤٥٦٧", "type": "PHONE"}]
+    answer = json.dumps({"findings": [
+        {"original_text": "0551234567", "type": "PHONE", "action": "REMOVE",
+         "replacement": None, "confidence": 0.95, "rule_id": "VENDOR-PII-003",
+         "reason": "Vendors do not receive customer phone numbers."}]})
+    summary = M.aggregate([M.score(answer, labelled, "EXTERNAL_VENDOR")])
+    assert summary["finding_recall"] == 1.0, summary
+    assert summary["action_agreement"] == 1.0, summary
+    assert summary["leak_rate"] == 0.0, summary
+
+
 def test_a_parsed_answer_scores_the_same_as_its_text():
     """engine.generate_json returns a parsed object; a predictions file may hold either.
 
