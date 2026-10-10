@@ -154,6 +154,35 @@ The two documents that previously produced nothing usable now return findings, a
 format failures are gone entirely. The single remaining leak is one value in `kyc-form-ar`,
 which the release still sends to a person — the safe default doing its job.
 
+### Measured after alignment (DPO, on top of the fine-tuned adapter)
+
+Same test set, same scoring. 341 preference pairs, one epoch, 50 minutes on a T4. DPO loss
+0.345, and `rewards/accuracies` reached 1.0 — the preference pairs were fully separated.
+
+| metric | base | after LoRA | after LoRA + DPO |
+|---|---|---|---|
+| structured output | 88.3% | 100.0% | 100.0% |
+| citation validity | 96.7% | 100.0% | 100.0% |
+| action agreement | 92.0% | 100.0% | **98.5%** |
+| finding recall | 71.4% | 97.1% | **94.3%** |
+| **leak rate** | **34.7%** | **2.0%** | **4.1%** (2 values) |
+
+**Read this honestly: alignment did not improve the frozen test set — it made it slightly
+worse** (one leak became two, recall fell 2.8 points). That is a finding, not a failure of the
+experiment, and the reason is visible in what DPO was taught. Its 341 pairs are about
+*judgement under uncertainty* — ask rather than guess, never invent a rule, never keep what
+must go — and the frozen test set cannot measure judgement, because every document in it goes
+to a receiver that has a written policy. Its guards also make the cheap answer always
+available: an ungrounded action becomes a question, not a leak.
+
+So the honest conclusion at this point is that the fine-tuned adapter is the better model
+**on this test set**, and whether alignment earns its place depends on the no-rule set
+(`data/test_no_rules`), which is the only thing here that scores the behaviour DPO was trained
+for. If DPO asks more often there without leaking, its cost on the standard set is a
+documented trade and can be decided on purpose; if it does not, the alignment step is reported
+as run, measured, and not kept — which is a legitimate engineering result, and the numbers are
+the evidence either way.
+
 **The honest caveat, and it belongs in the report:** the training documents and the test
 documents come from the same generator, so they share a writing style even though they share
 no values and no documents (that is checked on every data build). The model learned this
