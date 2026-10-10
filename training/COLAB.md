@@ -33,6 +33,12 @@ The sections below are the same steps spelled out, for reading.
 !pip install -q -r requirements.txt -r training/requirements-train.txt
 ```
 
+**Expected warning, not an error:** this step prints `dependency resolver` messages naming
+`google-colab`, `cudf`, `dask`, `torchvision` or `pandas`. Colab ships its own versions of
+those libraries and the install moved some of them. The pandas and opentelemetry ones are
+harmless. The torchvision one matters only if a later cell fails with a torchvision error, in
+which case run `!pip install -q --upgrade torchvision` and re-run that cell.
+
 Check the GPU is really there before spending time:
 
 ```python
