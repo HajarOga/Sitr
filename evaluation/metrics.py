@@ -8,12 +8,22 @@ Five measurements, each answering a different question about one document and re
 | `citation` | did it cite a rule that exists **for this receiver and this type** |
 | `action agreement` | did it choose the action the policy expects |
 | `finding recall` | did it report the items that are there |
-| `leak rate` | would any value the receiver must not see still be visible |
+| `leak rate` | would any value the receiver must not see still be **published** |
+| `deferred rate` | how much of the work was handed to a person instead |
 
-`leak rate` is the one that matters most, and it is defined conservatively: an item the
-policy says must be replaced or removed counts as leaked if the model did not report it
-at all, or chose KEEP, or its answer did not survive the guards. Silence is a leak here
-because silence means the value stays in the document.
+`leak rate` is the one that matters most, and it has to mean what the product means. The
+application has three outcomes for a value the policy says must not go:
+
+- **resolved** - replaced or removed under a valid rule: gone from the release;
+- **deferred** - a person must decide, so the item is *left out of the release* until they do
+  (`test_unanswered_items_leave_the_release`); the value is not published, but nothing has
+  resolved it either;
+- **leaked** - the value is still in the release: the model said KEEP under a rule that
+  permits it, said nothing at all, or produced an answer with no usable type or action.
+
+Counting a deferred value as leaked would overstate the danger and hide the real cost, which
+is the human workload. Counting it as resolved would understate the danger and flatter the
+model. So both are reported, separately, and neither is folded into the other.
 
 Two levels are reported side by side, which is the point of the exercise:
 
@@ -55,6 +65,7 @@ class DocumentScore:
     found: int
     must_go: int = 0
     leaked: list[str] = field(default_factory=list)
+    deferred: list[str] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
     raw_text: str = ""
 
@@ -65,7 +76,8 @@ class DocumentScore:
             "structured_ok": self.structured_ok, "citations_ok": self.citations_ok,
             "citations_made": self.citations_made, "actions_ok": self.actions_ok,
             "actions_checked": self.actions_checked, "found": self.found,
-            "leaked": self.leaked, "problems": self.problems[:6],
+            "leaked": self.leaked, "deferred": self.deferred,
+            "problems": self.problems[:6],
         }
 
 
@@ -230,12 +242,17 @@ def score(raw, labelled: list[dict], receiver: str,
     for item in must_not_be_visible(labelled, receiver, lib):
         finding = lookup(item["text"])
         action = str(finding.get("action", "")).upper() if finding else ""
-        rule = lib.rule_for(receiver, item["type"])
-        # kept, unreported, or reported without a rule behind a removal: still visible
-        if not finding or action == Action.KEEP.value or (
-                action in (Action.REPLACE.value, Action.REMOVE.value)
-                and not citation_is_valid(finding, receiver, lib)):
+        if not finding or action == Action.KEEP.value:
+            # nothing usable was reported, or the model kept it: it stays in the release
             score.leaked.append(item["text"])
+        elif action == Action.ASK_HUMAN.value:
+            # a person decides, and until they do the item is left out of the release
+            score.deferred.append(item["text"])
+        elif action in (Action.REPLACE.value, Action.REMOVE.value) \
+                and not citation_is_valid(finding, receiver, lib):
+            # the guard turns an ungrounded replacement or removal into a question, so this
+            # is deferred too - the model's intent was right, its evidence was not
+            score.deferred.append(item["text"])
 
     return score
 
@@ -249,6 +266,7 @@ def aggregate(scores: list[DocumentScore]) -> dict:
     must_go = sum(s.must_go for s in scores)
     reported = sum(s.reported_items for s in scores)
     leaked = sum(len(s.leaked) for s in scores)
+    deferred = sum(len(s.deferred) for s in scores)
     return {
         "documents": len(scores),
         "labelled_items": labelled,
@@ -262,6 +280,8 @@ def aggregate(scores: list[DocumentScore]) -> dict:
         "finding_recall": ratio(sum(s.found for s in scores), labelled),
         "leaked_values": leaked,
         "leak_rate": ratio(leaked, must_go),
+        "deferred_values": deferred,
+        "deferred_rate": ratio(deferred, must_go),
     }
 
 
@@ -284,8 +304,10 @@ def format_report(metrics: dict, scores: list[DocumentScore], title: str = "") -
               f"action agreement    : {metrics['action_agreement'] * 100:5.1f}%",
               f"finding recall      : {metrics['finding_recall'] * 100:5.1f}%",
               f"leak rate           : {metrics['leak_rate'] * 100:5.1f}%"
-              f"   ({metrics['leaked_values']} of "
-              f"{metrics['must_not_be_visible']} values that had to go)"]
+              f"   ({metrics['leaked_values']} values still published of "
+              f"{metrics['must_not_be_visible']})",
+              f"deferred to a person: {metrics['deferred_rate'] * 100:5.1f}%"
+              f"   ({metrics['deferred_values']} values left out pending review)"]
     return "\n".join(lines)
 
 
@@ -299,7 +321,8 @@ def comparison(metrics: dict[str, dict]) -> str:
                        ("citation", "citation validity"),
                        ("action_agreement", "action agreement"),
                        ("finding_recall", "finding recall"),
-                       ("leak_rate", "leak rate")):
+                       ("leak_rate", "leak rate"),
+                       ("deferred_rate", "deferred to a person")):
         row = label.ljust(22)
         for name in names:
             value = metrics[name].get(key)
@@ -307,7 +330,8 @@ def comparison(metrics: dict[str, dict]) -> str:
                     else "-".ljust(width))
         lines.append(row)
     lines.append("")
-    lines.append("leaked values".ljust(22)
-                 + "".join(str(metrics[name].get("leaked_values", "-")).ljust(width)
+    lines.append("leaked / deferred".ljust(22)
+                 + "".join((f"{metrics[name].get('leaked_values', '-')} / "
+                            f"{metrics[name].get('deferred_values', '-')}").ljust(width)
                            for name in names))
     return "\n".join(lines)

@@ -660,8 +660,12 @@ def test_the_metrics_catch_an_invented_rule_and_a_kept_value():
         "replacement": None, "confidence": 0.95, "rule_id": "VENDOR-PII-999",
         "reason": "Looks sensitive."}]})
     score = M.score(invented, items, "EXTERNAL_VENDOR", document_id="invented")
-    assert M.aggregate([score])["citation"] == 0.0, "an invented rule was accepted"
-    assert M.aggregate([score])["leak_rate"] == 1.0, "the value would still be published"
+    summary = M.aggregate([score])
+    assert summary["citation"] == 0.0, "an invented rule was accepted"
+    # the guard turns an ungrounded removal into a question, and the app leaves the item out
+    # of the release until a person answers - not published, not resolved
+    assert summary["leak_rate"] == 0.0, "the value would have been published"
+    assert summary["deferred_rate"] == 1.0, "an ungrounded removal must reach a person"
 
     kept = json.dumps({"findings": [{
         "original_text": "1045837299", "type": "NATIONAL_ID", "action": "KEEP",
@@ -744,6 +748,39 @@ def test_a_labelled_line_covers_its_value_but_a_document_echo_does_not():
     line_score = M.aggregate([M.score(line, labelled, "EXTERNAL_VENDOR")])
     assert line_score["finding_recall"] == 1.0, line_score
     assert line_score["leak_rate"] == 0.0, line_score
+
+
+def test_three_outcomes_are_counted_separately():
+    """resolved / deferred / leaked - the three things the release can do with a value.
+
+    The application leaves a deferred item OUT of the release, so it is not published; but
+    nothing has resolved it, and the human workload is a real product cost. Folding it into
+    either of the other two would misstate the product: as "resolved" it flatters the model,
+    as "leaked" it overstates the danger.
+    """
+    from evaluation import metrics as M
+
+    items = [{"text": "1045837299", "type": "NATIONAL_ID"}]
+    base = {"original_text": "1045837299", "type": "NATIONAL_ID", "replacement": None,
+            "confidence": 0.95, "reason": "..."}
+
+    resolved = json.dumps({"findings": [{**base, "action": "REMOVE",
+                                         "rule_id": "VENDOR-PII-002"}]})
+    summary = M.aggregate([M.score(resolved, items, "EXTERNAL_VENDOR")])
+    assert (summary["leak_rate"], summary["deferred_rate"]) == (0.0, 0.0), summary
+
+    deferred = json.dumps({"findings": [{**base, "action": "ASK_HUMAN", "rule_id": None}]})
+    summary = M.aggregate([M.score(deferred, items, "EXTERNAL_VENDOR")])
+    assert (summary["leak_rate"], summary["deferred_rate"]) == (0.0, 1.0), summary
+
+    leaked = json.dumps({"findings": [{**base, "action": "KEEP",
+                                       "rule_id": "VENDOR-PII-002"}]})
+    summary = M.aggregate([M.score(leaked, items, "EXTERNAL_VENDOR")])
+    assert (summary["leak_rate"], summary["deferred_rate"]) == (1.0, 0.0), summary
+
+    silent = json.dumps({"findings": []})
+    summary = M.aggregate([M.score(silent, items, "EXTERNAL_VENDOR")])
+    assert (summary["leak_rate"], summary["deferred_rate"]) == (1.0, 0.0), summary
 
 
 def test_a_parsed_answer_scores_the_same_as_its_text():
