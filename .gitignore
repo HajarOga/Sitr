@@ -24,6 +24,7 @@ audit.sqlite3
 #     python -m scripts.setup_model
 models/
 predictions/
+data/export/
 training/lora_adapter/
 training/dpo_adapter/
 *.safetensors
