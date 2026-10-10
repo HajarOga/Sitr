@@ -1,10 +1,27 @@
 # Running the training on a free Colab GPU
 
 The application runs on a laptop with no GPU. **Training does not** — LoRA on a 3B model
-needs a GPU, and the brief's constraint is that it must fit a free one. Follow these steps
-in order; each block is one Colab cell.
+needs a GPU, and the brief's constraint is that it must fit a free one.
 
-Set the runtime first: **Runtime → Change runtime type → T4 GPU**.
+## The fast path
+
+`notebooks/train_on_colab.ipynb` is this whole document as runnable cells, in the order
+that matters: **it measures the baseline before it trains anything**, so the "before"
+column exists even if training fails or the session dies.
+
+Upload it to Colab (File → Upload notebook), set the runtime to T4, and run top to bottom.
+
+**The repository is private**, so the first cell needs permission to clone it. Two options,
+both written into the cell:
+
+- **Recommended:** add a GitHub token as a Colab secret named `GITHUB_TOKEN` — sidebar key
+  icon, then GitHub → Settings → Developer settings → Personal access tokens → Fine-grained
+  → repository access: only `safeshare2` → Permissions: Contents = Read-only.
+- Or make the repository public once. Its history holds no secrets (`.env` was never
+  committed; the only `sk-` ever added was a placeholder), but keeping coursework private
+  is the safer choice while it is being marked.
+
+The sections below are the same steps spelled out, for reading.
 
 ---
 
