@@ -36,8 +36,27 @@ The sections below are the same steps spelled out, for reading.
 **Expected warning, not an error:** this step prints `dependency resolver` messages naming
 `google-colab`, `cudf`, `dask`, `torchvision` or `pandas`. Colab ships its own versions of
 those libraries and the install moved some of them. The pandas and opentelemetry ones are
-harmless. The torchvision one matters only if a later cell fails with a torchvision error, in
-which case run `!pip install -q --upgrade torchvision` and re-run that cell.
+harmless.
+
+**The torchvision one is not harmless** — it is a real trap, and it has bitten this project
+once already. Colab pairs `torch` with a matching `torchvision`; installing our requirements
+(which pin `torch`) leaves the two out of step, and an out-of-step torchvision makes
+transformers fail to import **any** model:
+
+```
+RuntimeError: operator torchvision::nms does not exist
+ModuleNotFoundError: Could not import module 'Qwen2ForCausalLM'
+```
+
+Every document then fails and the evaluation reports zero results without saying why. Nothing
+in this project touches images, so the fix is to remove the package:
+
+```
+!pip uninstall -y torchvision
+```
+
+The notebook does this in the install step. If you are running the steps by hand, do it before
+the first model call.
 
 Check the GPU is really there before spending time:
 
