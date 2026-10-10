@@ -123,6 +123,25 @@ def main() -> None:
     model = get_peft_model(model, config)
     model.print_trainable_parameters()
 
+    # Mixed precision has to match the parameters' own dtype, or torch's fp16 gradient scaler
+    # fails in its first clip-grad-norm step with
+    #   NotImplementedError: "_amp_foreach_non_finite_check_and_unscale_cuda" not implemented
+    #   for 'BFloat16'
+    # A 4-bit load keeps the checkpoint's bfloat16, and a T4 has no native bf16, so the
+    # trainable parameters are moved to fp16 rather than emulating bf16 arithmetic.
+    trainable = [(name, parameter) for name, parameter in model.named_parameters()
+                 if parameter.requires_grad]
+    trainable_dtype = (trainable[0][1].dtype if trainable
+                       else next(model.parameters()).dtype)
+    if trainable_dtype == torch.bfloat16 and not torch.cuda.is_bf16_supported():
+        print(f"trainable parameters are {trainable_dtype} and this card has no native bf16: "
+              f"moving them to fp16")
+        for _, parameter in trainable:
+            parameter.data = parameter.data.to(torch.float16)
+        trainable_dtype = torch.float16
+    use_bf16 = trainable_dtype == torch.bfloat16
+    print(f"training precision: {'bf16' if use_bf16 else 'fp16' if trainable_dtype == torch.float16 else 'none'}")
+
     class Collator:
         def __call__(self, features):
             length = max(len(f["input_ids"]) for f in features)
@@ -139,7 +158,8 @@ def main() -> None:
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         learning_rate=args.lr, lr_scheduler_type="cosine", warmup_steps=10,
-        fp16=True, bf16=False, logging_steps=5, save_strategy="epoch", save_total_limit=1,
+        fp16=trainable_dtype == torch.float16, bf16=use_bf16,
+        logging_steps=5, save_strategy="epoch", save_total_limit=1,
         report_to="none", remove_unused_columns=False, seed=42,
         gradient_checkpointing=True)
 

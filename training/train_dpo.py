@@ -150,6 +150,34 @@ def main() -> None:
                             "up_proj", "down_proj"]))
         print("no adapter found - aligning the base model directly")
 
+    # The training precision must match the parameters' own dtype. A 4-bit load keeps the
+    # checkpoint's bfloat16 for the trainable parameters, and asking for fp16 mixed precision
+    # alongside bf16 gradients fails in torch's first clip-grad-norm step:
+    #   NotImplementedError: "_amp_foreach_non_finite_check_and_unscale_cuda" not implemented
+    #   for 'BFloat16'
+    # which arrives at step 0/43 with no clue about precision. Detect it, report it, and make
+    # the two agree.
+    base_dtype = next(model.parameters()).dtype
+    trainable = [(name, parameter) for name, parameter in model.named_parameters()
+                 if parameter.requires_grad]
+    trainable_dtype = trainable[0][1].dtype if trainable else base_dtype
+    use_bf16 = trainable_dtype == torch.bfloat16
+    print(f"parameters: base {base_dtype}, trainable {trainable_dtype} "
+          f"({len(trainable)} tensors)")
+    if not use_bf16 and trainable_dtype != torch.float16:
+        # half-precision parameters that are neither: asking for fp16 mixed precision would
+        # again mismatch, so leave mixed precision off rather than pick a losing side
+        print("neither bf16 nor fp16 - running without mixed precision")
+    elif use_bf16 and not torch.cuda.is_bf16_supported():
+        # a bfloat16 model on a card without native bf16: bf16 autocast is emulated and slow,
+        # so move the trainable parameters to fp16 instead - they are a fraction of the model
+        print("bfloat16 parameters on a card without native bf16: moving the trainable "
+              "parameters to fp16")
+        for _, parameter in trainable:
+            parameter.data = parameter.data.to(torch.float16)
+        trainable_dtype = torch.float16
+        use_bf16 = False
+
     def render(row: dict) -> dict:
         """DPO wants the prompt, the preferred answer and the rejected answer."""
         prompt = tokenizer.apply_chat_template(row["messages"], tokenize=False,
@@ -163,7 +191,9 @@ def main() -> None:
         "per_device_train_batch_size": args.batch_size,
         "gradient_accumulation_steps": args.grad_accum, "learning_rate": args.lr,
         "lr_scheduler_type": "cosine", "warmup_ratio": 0.1, "warmup_steps": 10,
-        "fp16": True, "bf16": False, "logging_steps": 5, "save_strategy": "epoch",
+        "fp16": trainable_dtype == torch.float16,
+        "bf16": use_bf16,
+        "logging_steps": 5, "save_strategy": "epoch",
         "save_total_limit": 1, "report_to": "none",
         "max_length": args.max_len, "max_prompt_length": args.max_prompt_len,
         "gradient_checkpointing": True, "remove_unused_columns": False, "seed": 42,
