@@ -68,10 +68,21 @@ class DocumentScore:
         }
 
 
-def parse_answer(raw: str) -> tuple[list[dict], list[str]]:
-    """Read the model's answer. Returns the findings and what was wrong with the shape."""
+def parse_answer(raw) -> tuple[list[dict], list[str]]:
+    """Read the model's answer. Returns the findings and what was wrong with the shape.
+
+    Accepts a string, or an already-parsed object: `engine.generate_json()` returns the
+    parsed payload, so a predictions file may hold either.
+    """
     problems: list[str] = []
-    if not raw or not raw.strip():
+    if raw is None:
+        return [], ["the model gave no answer at all"]
+    if isinstance(raw, (dict, list)):
+        payload = raw
+        findings = payload.get("findings") if isinstance(payload, dict) else payload
+        return ([f for f in findings if isinstance(f, dict)] if isinstance(findings, list)
+                else []), problems
+    if not raw.strip():
         return [], ["the answer was empty"]
     text = raw.strip()
     if text.startswith("```"):
@@ -127,7 +138,7 @@ def citation_is_valid(finding: dict, receiver: str,
     return rule is not None and rule.rule_id == cited
 
 
-def score(raw: str, labelled: list[dict], receiver: str,
+def score(raw, labelled: list[dict], receiver: str,
           library: RulesLibrary | None = None, document_id: str = "?") -> DocumentScore:
     """Score one answer against the labels for one document and receiver."""
     lib = library or default_library()

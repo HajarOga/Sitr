@@ -84,18 +84,30 @@ def run_live(out_path: Path, document_ids: list[str] | None = None) -> dict:
                 lib.receivers[case["receiver"]].purpose, rules)
             engine.reset_calls()
             try:
-                raw, meta = engine.generate_json(messages, purpose="evaluation")
+                payload, meta = engine.generate_json(messages, purpose="evaluation")
             except engine.ModelCallFailed as exc:
                 print(f"  {case['document_id']}: the model refused the call ({exc})")
                 continue
+            # `generate_json` returns the parsed payload, not text. Store it as text so the
+            # predictions file is readable, and count what actually came back - counting the
+            # keys of a dict once cost this project a whole baseline run.
+            answer = "" if payload is None else json.dumps(payload, ensure_ascii=False)
+            findings = (payload or {}).get("findings", []) if isinstance(payload, dict) else \
+                (payload or [])
             handle.write(json.dumps({
                 "document_id": case["document_id"], "receiver": case["receiver"],
-                "answer": raw, "model": state.get("model"), "adapter": config.ADAPTER,
+                "answer": answer, "parsed": bool(payload), "findings": len(findings),
+                "attempts": meta.get("attempts") if isinstance(meta, dict) else None,
+                "model": state.get("model"), "adapter": config.ADAPTER,
                 "seconds": meta.get("seconds") if isinstance(meta, dict) else None,
                 "items": case["items"]}, ensure_ascii=False) + "\n")
             written += 1
-            print(f"  {case['document_id']:<22} {len(case['items'])} labels, "
-                  f"{len(raw)} chars back")
+            if payload is None:
+                print(f"  {case['document_id']:<22} {len(case['items'])} labels, "
+                      f"NO USABLE ANSWER after {meta.get('attempts')} attempts")
+            else:
+                print(f"  {case['document_id']:<22} {len(case['items'])} labels, "
+                      f"{len(findings)} findings, {meta.get('seconds')}s")
 
     print(f"\n{written} predictions -> {out_path}")
     print("nothing was written to data/train/ or data/test/")

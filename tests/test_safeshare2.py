@@ -629,6 +629,33 @@ def test_the_metrics_catch_an_invented_rule_and_a_kept_value():
     assert M.aggregate([kept_score])["action_agreement"] == 0.0
 
 
+def test_a_parsed_answer_scores_the_same_as_its_text():
+    """engine.generate_json returns a parsed object; a predictions file may hold either.
+
+    This is not hypothetical: the first Colab baseline stored the object, `parse_answer`
+    assumed text, and the whole run crashed after the model had worked correctly.
+    """
+    from evaluation import metrics as M
+
+    items = [{"text": "1045837299", "type": "NATIONAL_ID"}]
+    payload = {"findings": [{"original_text": "1045837299", "type": "NATIONAL_ID",
+                             "action": "REMOVE", "replacement": None, "confidence": 0.95,
+                             "rule_id": "VENDOR-PII-002", "reason": "Not to vendors."}]}
+    from_text = M.aggregate([M.score(json.dumps(payload), items, "EXTERNAL_VENDOR")])
+    from_object = M.aggregate([M.score(payload, items, "EXTERNAL_VENDOR")])
+    assert from_text == from_object, (from_text, from_object)
+    assert from_text["finding_recall"] == 1.0
+
+
+def test_no_answer_at_all_is_a_leak_not_a_crash():
+    from evaluation import metrics as M
+
+    items = [{"text": "1045837299", "type": "NATIONAL_ID"}]
+    score = M.score(None, items, "EXTERNAL_VENDOR", document_id="none")
+    assert score.leaked == ["1045837299"]
+    assert M.aggregate([score])["leak_rate"] == 1.0
+
+
 def test_a_fenced_answer_still_counts_as_structured():
     """A markdown fence is a formatting wobble, not a broken answer - but it is noted."""
     from evaluation import metrics as M
