@@ -79,14 +79,38 @@ def same_value(left: str, right: str) -> bool:
     an exact comparison calls it nothing at all. That mistake produced a "0.0% recall, 100%
     leak" baseline from a run whose citations were 96.7% valid.
     """
-    def key(value: str) -> str:
-        folded, _ = fold(str(value))
-        return " ".join(folded.split()).strip(" \t\"'“”«»:،.").casefold()
-
-    left_key, right_key = key(left), key(right)
+    left_key, right_key = _key(left), _key(right)
     if not left_key or not right_key:
         return False
     return left_key == right_key
+
+
+def _key(value: str) -> str:
+    """Folded, whitespace-squeezed, unquoted, case-folded - the comparison the app makes."""
+    folded, _ = fold(str(value))
+    return " ".join(folded.split()).strip(" \t\"'“”«»:،.").casefold()
+
+
+def covers(reported: str, value: str) -> bool:
+    """Does this reported text cover this labelled value?
+
+    The model usually answers with the whole labelled line - "National ID: 1045837299" rather
+    than "1045837299" - and the application accepts that, because the value is inside the
+    finding and the release removes it. So equality is too strict.
+
+    But an answer that swallows the *entire document* is not a detection either: it identifies
+    nothing, and it must not be allowed to score as if it had found every value in the file.
+    Hence the length cap. Three times the value (or the value plus 40 characters) is enough
+    room for a label, a field name, and punctuation, and not enough for a document.
+    """
+    reported_key, value_key = _key(reported), _key(value)
+    if not reported_key or not value_key:
+        return False
+    if reported_key == value_key:
+        return True
+    if len(reported_key) > max(3 * len(value_key), len(value_key) + 40):
+        return False
+    return value_key in reported_key
 
 
 def parse_answer(raw) -> tuple[list[dict], list[str]]:
@@ -175,7 +199,9 @@ def score(raw, labelled: list[dict], receiver: str,
     def lookup(value: str) -> dict | None:
         for finding in findings:
             reported = str(finding.get("original_text") or "")
-            if reported and same_value(reported, value):
+            # a finding with no valid type or action is not a detection, whatever text it
+            # carries: the application drops it, so it cannot cover a value here either
+            if reported and is_structured(finding) and covers(reported, value):
                 return finding
         return None
 

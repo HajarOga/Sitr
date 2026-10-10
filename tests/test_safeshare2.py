@@ -702,6 +702,50 @@ def test_a_value_in_another_digit_style_is_the_same_value():
     assert summary["leak_rate"] == 0.0, summary
 
 
+def test_a_labelled_line_covers_its_value_but_a_document_echo_does_not():
+    """The shapes a real model actually produced, scored the way the app would score them.
+
+    From the first GPU baseline: most documents came back with the labelled line
+    ("National ID: 1045837299"), which the app accepts because the value is inside the
+    finding; one document came back as the entire document text with no type, which the app
+    drops. Scoring must treat those two differently - the first is a detection, the second
+    is not a detection at all.
+    """
+    from evaluation import metrics as M
+
+    assert M.covers("National ID: 1045837299", "1045837299")
+    assert M.covers("Mobile: ٠٥٥١٢٣٤٥٦٧", "0551234567")
+    assert M.covers('"1045837299"', "1045837299")
+    assert not M.covers("0509999999", "0551234567")
+
+    document = ("Customer Complaint Report\nName: Abdullah Mohammed Alharbi\n"
+                "National ID: 1045837299\nMobile: 0551234567\n"
+                "Email: a.alharbi@example.com\nAddress: Al Narjis district, Street 12\n"
+                "Customer no.: CUST-4471\nThe washing machine stopped during the spin cycle.")
+    assert not M.covers(document, "1045837299"), "a document-sized answer is not a detection"
+
+    labelled = [{"text": "1045837299", "type": "NATIONAL_ID"}]
+
+    # the echo: one finding, the whole document, no type - the app drops it, so the value leaks
+    echo = json.dumps({"findings": [{"original_text": document, "type": None,
+                                     "action": None, "replacement": None,
+                                     "confidence": 0.9, "rule_id": None,
+                                     "reason": "found it"}]})
+    echo_score = M.aggregate([M.score(echo, labelled, "EXTERNAL_VENDOR")])
+    assert echo_score["finding_recall"] == 0.0, echo_score
+    assert echo_score["leak_rate"] == 1.0, echo_score
+
+    # the labelled line: a real detection, because the app would remove it from the release
+    line = json.dumps({"findings": [{"original_text": "National ID: 1045837299",
+                                     "type": "NATIONAL_ID", "action": "REMOVE",
+                                     "replacement": None, "confidence": 0.95,
+                                     "rule_id": "VENDOR-PII-002",
+                                     "reason": "A national ID is not shared with a vendor."}]})
+    line_score = M.aggregate([M.score(line, labelled, "EXTERNAL_VENDOR")])
+    assert line_score["finding_recall"] == 1.0, line_score
+    assert line_score["leak_rate"] == 0.0, line_score
+
+
 def test_a_parsed_answer_scores_the_same_as_its_text():
     """engine.generate_json returns a parsed object; a predictions file may hold either.
 
