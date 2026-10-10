@@ -269,6 +269,34 @@ def test_the_audit_records_the_model_and_stores_no_value():
         assert b"a.alharbi@example.test" not in blob
 
 
+def test_the_audit_database_handle_is_released():
+    """The connection must be CLOSED, not merely committed.
+
+    `with sqlite3.connect(...)` commits and rolls back but leaves the connection open.
+    macOS and Linux do not care, so this passed for a week; Windows locks the file and
+    every test that cleans up its temporary database failed with WinError 32. Renaming
+    the file is the portable way to assert the handle is gone.
+    """
+    detections, _ = checked([finding()])
+    for index, detection in enumerate(detections):
+        detection.meta.setdefault("id", f"d{index}")
+        detection.meta["masked"] = core.mask_value(detection.original_text)
+        detection.meta["value_hash"] = core.value_hash(detection.original_text)
+    analysis = core.AnalysisResult(
+        document=document(), receiver="EXTERNAL_VENDOR", purpose="test",
+        detections=detections, generator=FakeGenerator(receiver="EXTERNAL_VENDOR"))
+    applied = core.apply_decisions(analysis)
+
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "audit.sqlite3"
+        run_id = audit.record_run(analysis, applied, db_path=db)
+        assert audit.runs(limit=1, db_path=db)[0]["run_id"] == run_id
+        moved = db.with_name("audit-moved.sqlite3")
+        db.rename(moved)                       # WinError 32 before this fix
+        assert moved.exists()
+    return "the database file could be renamed after use"
+
+
 def test_a_release_document_is_written():
     detections, _ = checked([finding()])
     for index, detection in enumerate(detections):
@@ -528,7 +556,13 @@ def test_end_to_end_with_the_model():
     if not state["installed"]:
         return "skipped: run `python -m scripts.setup_model` then run the suite again"
     engine.reset_calls()
-    analysis = core.analyze(document(), "EXTERNAL_VENDOR", "a vendor is fixing the line")
+    try:
+        analysis = core.analyze(document(), "EXTERNAL_VENDOR", "a vendor is fixing the line")
+    except engine.ModelCallFailed as exc:
+        # a key that has been rotated or expired is an environment problem, not a code
+        # failure, so it is reported as a skip that names the cause
+        return f"skipped: the configured model refused the call ({exc}) - " \
+               f"update the key in .env, or set SAFESHARE2_PROVIDER=off to run without it"
     assert analysis.detections, "the model found nothing in a document full of PII"
     for detection in analysis.detections:
         assert detection.action in {a.value for a in Action}

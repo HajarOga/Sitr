@@ -16,9 +16,29 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from contextlib import contextmanager
+
 from .. import config
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
+
+
+@contextmanager
+def _session(db_path: str | Path | None = None):
+    """A connection that is closed on the way out - on every platform.
+
+    `with sqlite3.connect(...)` commits and rolls back, but it does NOT close the
+    connection. On macOS and Linux that goes unnoticed, because deleting a file that is
+    still open is allowed; on Windows the open handle locks the file, so a test that
+    cleans up its temporary database fails with WinError 32. Closing explicitly is the
+    difference between "passes on my machine" and "passes on the user's machine".
+    """
+    connection = _connect(db_path)
+    try:
+        with connection:                      # keeps the commit / rollback behaviour
+            yield connection
+    finally:
+        connection.close()
 
 
 def _connect(db_path: str | Path | None = None) -> sqlite3.Connection:
@@ -65,7 +85,7 @@ def record_run(analysis, applied: dict, run_id: str | None = None,
     calls = list(getattr(analysis, "calls", []) or [])
     model_seconds = round(sum(float(c.get("seconds") or 0) for c in calls), 2)
     document_name = analysis.document.filename
-    with _connect(db_path) as connection:
+    with _session(db_path) as connection:
         connection.execute(
             "INSERT INTO runs (run_id, created_at, document, receiver, purpose, items,"
             " replaced, removed, kept, pending, incomplete, rules_version, model,"
@@ -114,7 +134,7 @@ def record_run(analysis, applied: dict, run_id: str | None = None,
 
 def model_calls(run_id: str, db_path: str | Path | None = None) -> list[dict]:
     """Every model call made for one run: the AI's own footprint."""
-    with _connect(db_path) as connection:
+    with _session(db_path) as connection:
         rows = connection.execute(
             "SELECT * FROM model_calls WHERE run_id = ? ORDER BY call_id",
             (run_id,)).fetchall()
@@ -122,28 +142,28 @@ def model_calls(run_id: str, db_path: str | Path | None = None) -> list[dict]:
 
 
 def recent(limit: int = 50, db_path: str | Path | None = None) -> list[dict]:
-    with _connect(db_path) as connection:
+    with _session(db_path) as connection:
         rows = connection.execute(
             "SELECT * FROM decisions ORDER BY decision_id DESC LIMIT ?", (limit,)).fetchall()
         return [dict(row) for row in rows]
 
 
 def runs(limit: int = 20, db_path: str | Path | None = None) -> list[dict]:
-    with _connect(db_path) as connection:
+    with _session(db_path) as connection:
         rows = connection.execute(
             "SELECT * FROM runs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
         return [dict(row) for row in rows]
 
 
 def decisions_for_run(run_id: str, db_path: str | Path | None = None) -> list[dict]:
-    with _connect(db_path) as connection:
+    with _session(db_path) as connection:
         rows = connection.execute(
             "SELECT * FROM decisions WHERE run_id = ? ORDER BY decision_id", (run_id,)).fetchall()
         return [dict(row) for row in rows]
 
 
 def summary(db_path: str | Path | None = None) -> dict:
-    with _connect(db_path) as connection:
+    with _session(db_path) as connection:
         total = connection.execute("SELECT COUNT(*) FROM decisions").fetchone()[0]
         by_action = dict(connection.execute(
             "SELECT action, COUNT(*) FROM decisions GROUP BY action").fetchall())
