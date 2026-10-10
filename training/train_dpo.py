@@ -29,6 +29,24 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
+def supported_kwargs(config_class, kwargs: dict) -> tuple[dict, dict]:
+    """Keep only the arguments this installed version of the trainer accepts.
+
+    Trainer configuration APIs drift between releases, and a single renamed argument stops a
+    half-hour GPU run at the last line before it starts - `warmup_ratio` was accepted by one
+    version of TRL's DPOConfig and not by the next. So the settings are offered as a dictionary
+    and filtered against the class actually installed, and anything dropped is reported rather
+    than silently ignored.
+    """
+    import inspect                                                   # noqa: PLC0415
+    parameters = inspect.signature(config_class.__init__).parameters
+    if any(p.kind == p.VAR_KEYWORD for p in parameters.values()):
+        return dict(kwargs), {}                       # accepts anything: pass it all through
+    kept = {key: value for key, value in kwargs.items() if key in parameters}
+    dropped = {key: value for key, value in kwargs.items() if key not in parameters}
+    return kept, dropped
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="DPO alignment for SafeShare")
     parser.add_argument("--base", default="Qwen/Qwen2.5-3B-Instruct")
@@ -97,14 +115,22 @@ def main() -> None:
 
     dataset = Dataset.from_list([render(row) for row in rows])
 
-    config = DPOConfig(
-        output_dir=args.out, beta=args.beta, num_train_epochs=args.epochs,
-        per_device_train_batch_size=args.batch_size,
-        gradient_accumulation_steps=args.grad_accum, learning_rate=args.lr,
-        lr_scheduler_type="cosine", warmup_ratio=0.1, fp16=True, bf16=False,
-        logging_steps=5, save_strategy="epoch", save_total_limit=1, report_to="none",
-        max_length=args.max_len, max_prompt_length=args.max_prompt_len,
-        gradient_checkpointing=True, remove_unused_columns=False, seed=42)
+    settings = {
+        "output_dir": args.out, "beta": args.beta, "num_train_epochs": args.epochs,
+        "per_device_train_batch_size": args.batch_size,
+        "gradient_accumulation_steps": args.grad_accum, "learning_rate": args.lr,
+        "lr_scheduler_type": "cosine", "warmup_ratio": 0.1, "warmup_steps": 10,
+        "fp16": True, "bf16": False, "logging_steps": 5, "save_strategy": "epoch",
+        "save_total_limit": 1, "report_to": "none",
+        "max_length": args.max_len, "max_prompt_length": args.max_prompt_len,
+        "gradient_checkpointing": True, "remove_unused_columns": False, "seed": 42,
+    }
+    kept, dropped = supported_kwargs(DPOConfig, settings)
+    if dropped:
+        print("this version of TRL does not accept, so these were left out:")
+        for key in sorted(dropped):
+            print(f"  {key}")
+    config = DPOConfig(**kept)
 
     trainer = DPOTrainer(model=model, args=config, train_dataset=dataset,
                          processing_class=tokenizer)

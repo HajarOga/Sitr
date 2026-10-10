@@ -750,6 +750,33 @@ def test_a_labelled_line_covers_its_value_but_a_document_echo_does_not():
     assert line_score["leak_rate"] == 0.0, line_score
 
 
+def test_trainer_settings_are_filtered_to_what_is_actually_installed():
+    """A renamed trainer argument must not be able to stop a half-hour GPU run.
+
+    TRL added and removed `warmup_ratio` from DPOConfig between releases, and the failure
+    arrived after the model had loaded - the last line before training starts. The settings are
+    offered as a dictionary and filtered against the installed class instead.
+    """
+    from training.train_dpo import supported_kwargs
+
+    class StrictlyTyped:                       # like this Colab's DPOConfig
+        def __init__(self, beta, output_dir):
+            self.beta, self.output_dir = beta, output_dir
+
+    kept, dropped = supported_kwargs(
+        StrictlyTyped, {"beta": 0.1, "output_dir": "out", "warmup_ratio": 0.1})
+    assert kept == {"beta": 0.1, "output_dir": "out"}, kept
+    assert dropped == {"warmup_ratio": 0.1}, dropped
+
+    class AcceptsAnything:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    kept, dropped = supported_kwargs(AcceptsAnything, {"anything": 1})
+    assert kept == {"anything": 1} and dropped == {}, (kept, dropped)
+    return "verified: unsupported arguments are dropped and reported"
+
+
 def test_the_no_rule_set_exists_and_the_metric_notices_the_difference():
     """The alignment half of the adaptation path needs a set it can move.
 
