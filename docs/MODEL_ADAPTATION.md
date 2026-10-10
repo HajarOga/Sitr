@@ -90,8 +90,10 @@ overlap with the evaluation set: 0 values  (36 test values, 43 train values)
 
 ## 3. Why fine-tuning and alignment both
 
-The template requires at least one. We do both, because they teach two different things,
-and this product needs both of them:
+The template requires at least one. **If only one is run, it should be alignment** — the
+failure this product must not have is a confident wrong decision, and that is a preference,
+not a format. We do both, because they teach two different things, and this product needs
+both of them:
 
 - **Fine-tuning (LoRA/QLoRA)** teaches the **task and the format**: find the items, answer
   in this exact JSON, use these twelve category names, cite rules this way. That is a
@@ -112,6 +114,38 @@ one row of the report corresponds to one failure you can name:
 | `policy-overruled` | chooses an action the cited rule contradicts | the rule wins |
 | `leaked-by-omission` | reports nothing, or keeps what must go | silence leaks data |
 | `unsafe-substitute` | "replaces" a value with the value itself | a substitute must be fake |
+
+### The measured case, not the assumed one
+
+Does the prompt alone produce good answers? Mostly yes — which is exactly why the honest
+justification is not "quality" but **cost and privacy**, and why the claim is measured
+rather than asserted. Measured on our own training set, one request is:
+
+| part of the prompt | size | note |
+|---|---|---|
+| system instructions | 1,617 characters | identical on every call |
+| the policy block for that receiver | 1,632 characters | identical for every document to that receiver |
+| the document itself | 798 characters | **the only part that changes** |
+| **total** | **~4,048 characters ≈ 1,156 tokens** | **80% of it is standing instructions** |
+
+So every document costs four times its own length in instructions before the model reads a
+single word of it. Fine-tuning earns its place by teaching the model the task and the answer
+format, which is what allows that fixed part to shrink — and, more commercially, by making
+the pipeline runnable on a company machine with no document leaving the building. For a
+product whose whole purpose is handling other people's personal data, "it can run offline"
+is the argument a buyer cares about.
+
+**Why it has to be Qwen, specifically:** you can only fine-tune a model whose weights you
+hold. `deepseek-chat` is a closed hosted model — there is no way to train it, and no adapter
+can be attached to an API. Qwen2.5-3B-Instruct is open-weight, small enough to train at
+4-bit on the free T4 the brief requires, and it is already the model the application uses
+when it runs locally. So the adaptation step is Qwen by necessity, not by preference.
+
+**If the baseline already scores well, that is a finding, not a failure** — and it is the
+number the brief asks for either way: "the prompt alone reached X% structured output with a
+0% leak rate; adaptation reached Y% and cut the fixed prompt from 3,249 to Z characters."
+Report the difference; if there is none, report that honestly and let the cost argument
+carry the decision.
 
 **If the assessment asks "why not fine-tuning alone?"** — because fine-tuning on our own
 targets would teach the model to answer confidently in *every* case, including the ones
