@@ -776,8 +776,6 @@ def policy_history_tab(editor: PolicyEditor) -> None:
 
 def main() -> None:
     st.set_page_config(page_title="SafeShare", page_icon="🔒", layout="wide")
-    lib = default_library()
-    state = engine.status()
 
     with st.sidebar:
         st.markdown("### SafeShare")
@@ -785,22 +783,6 @@ def main() -> None:
         page = st.radio("Page", pages,
                         index=pages.index(st.session_state.get("page", "Upload")))
         st.session_state["page"] = page
-        st.divider()
-        st.markdown("**Policy**")
-        st.caption(f"{len(lib.rules)} rules across {len(lib.receivers)} receivers, "
-                   f"version {lib.version}")
-        st.markdown("**Policy search**")
-        try:
-            index_state = get_index().status()
-        except PolicyIndexError:
-            index_state = {}
-        if index_state.get("in_sync"):
-            st.caption(f"Chroma: {index_state['documents']} rules indexed\n\n"
-                       f"`{index_state.get('model', '')}`")
-        elif index_state.get("installed"):
-            st.caption("Chroma is installed; the index builds on the first question.")
-        else:
-            st.caption("Chroma index not built — run `python -m scripts.setup_model`.")
 
     {"Upload": page_upload, "Review": page_review, "Audit log": page_audit,
      "Policy": page_policy}[page]()
