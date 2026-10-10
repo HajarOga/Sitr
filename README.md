@@ -1,4 +1,4 @@
-# SafeShare2
+# SafeShare
 
 **One document in. A different safe version out for each receiver decided by a language
 model, with the rule behind every change written down.**
