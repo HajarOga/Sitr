@@ -151,6 +151,28 @@ files are the only things worth saving. Download `training/lora_adapter` and
 
 ---
 
+## Save the adapter before anything else
+
+A Colab runtime is a **fresh machine every session**. If it disconnects, `/content` is wiped:
+the code, the 6 GB model, the training data and the adapter all vanish. This has already cost
+one 21-minute training run that had completed successfully.
+
+So, in order of preference:
+
+1. **Do the training and the measurement in one cell, back to back.** A running cell keeps the
+   session alive, and there is no idle gap for Google to reclaim.
+2. **Download the adapter the moment training ends** — `files.download` works whether or not
+   Drive is mounted:
+   ```python
+   import shutil
+   shutil.make_archive('/content/adapter', 'zip', '.', 'training/lora_adapter')
+   from google.colab import files
+   files.download('/content/adapter.zip')
+   ```
+3. Only rely on Drive if the mount actually succeeded. The notebook prints *"adapter saved to
+   Drive"* in older copies even when the copy failed — check for the file, do not trust the
+   message.
+
 ## Notes that save time
 
 - **Free Colab disconnects.** Save the adapter as soon as training ends, and keep the
