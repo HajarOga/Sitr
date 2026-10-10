@@ -154,13 +154,13 @@ def _second_look(detections: list[Detection], document: Document, receiver: str,
             prompts.adjudicate_messages(payload_items, lib.receiver_label(receiver),
                                         _rules_for_prompt(lib, receiver)),
             purpose="adjudicate", max_new_tokens=900)
-        if not isinstance(payload, dict) or not isinstance(payload.get("decisions"), list):
+        if not answered(payload, "decisions"):
             notes.append("the second look did not return usable JSON; those items stay "
                          "with a person")
             continue
 
         by_id = {d.meta.get("id"): d for d in batch}
-        for decision in payload["decisions"]:
+        for decision in items_from(payload, "decisions"):
             if not isinstance(decision, dict):
                 continue
             item = by_id.get(str(decision.get("id")))
@@ -195,6 +195,35 @@ def _second_look(detections: list[Detection], document: Document, receiver: str,
                          f"{item.action} under {rule.rule_id}")
 
 
+def items_from(payload, key: str) -> list[dict]:
+    """Read a list of records out of whatever the model actually answered.
+
+    The prompt asks for `{"findings": [...]}`, and that is what usually comes back - but the
+    model sometimes answers with a bare `[...]` array. Accepting only the dictionary form
+    throws away a correct answer, and a thrown-away answer means those values are still in
+    the released document. So both shapes are read, and anything else counts as no answer.
+
+    The distinction that matters: `{"findings": []}` is a valid answer meaning "nothing to
+    redact", while `None` or prose is a failure. Both are handled as such.
+    """
+    if isinstance(payload, dict):
+        candidate = payload.get(key)
+    elif isinstance(payload, list):
+        candidate = payload
+    else:
+        return []
+    if not isinstance(candidate, list):
+        return []
+    return [item for item in candidate if isinstance(item, dict)]
+
+
+def answered(payload, key: str) -> bool:
+    """True when the answer has the right *shape*, even if the list is empty."""
+    if isinstance(payload, list):
+        return True
+    return isinstance(payload, dict) and isinstance(payload.get(key), list)
+
+
 def analyze(document: Document, receiver: str, purpose: str = "",
             library: RulesLibrary | None = None) -> AnalysisResult:
     """The model reads the document and proposes every action. Nothing else does."""
@@ -220,9 +249,9 @@ def analyze(document: Document, receiver: str, purpose: str = "",
         payload, meta = engine.generate_json(
             prompts.analyze_messages(part, label, purpose, rules),
             purpose=f"analyze part {index}/{len(parts)}")
-        if isinstance(payload, dict) and isinstance(payload.get("findings"), list):
+        if answered(payload, "findings"):
             parsed_any = True
-            findings.extend(payload["findings"])
+            findings.extend(items_from(payload, "findings"))
         else:
             notes.append(f"the model did not return usable JSON for part "
                          f"{index}/{len(parts)}: nothing was analysed there")

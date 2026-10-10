@@ -169,6 +169,49 @@ def test_overlapping_items_are_reported_once():
 # ------------------------------------------------------------------ engine: the JSON
 
 
+def test_a_bare_list_answer_is_used_not_thrown_away():
+    """The model sometimes answers with a bare [...] array instead of {"findings": [...]}.
+
+    Dropping that answer is not a cosmetic bug: it releases the document with those values
+    still in it. Both shapes have to be read, and an empty list is a valid "nothing to
+    redact" - not a failure.
+    """
+    items = [finding()]
+    assert core.answered(items, "findings") is True
+    assert core.items_from(items, "findings") == items
+    assert core.items_from({"findings": items}, "findings") == items
+    assert core.answered({"findings": []}, "findings") is True
+    assert core.items_from({"findings": []}, "findings") == []
+    assert core.answered(None, "findings") is False
+    assert core.answered("prose, no JSON", "findings") is False
+    assert core.items_from({"decisions": []}, "findings") == []
+    # the second look answers with "decisions", and gets the same treatment
+    assert core.answered([{"id": "d0"}], "decisions") is True
+    assert core.items_from([{"id": "d0"}], "decisions") == [{"id": "d0"}]
+
+
+def test_analyze_uses_a_bare_list_answer_end_to_end():
+    """The same thing, through analyze(): a bare array must still become detections."""
+    original_json = engine.generate_json
+    original_install = engine.ensure_installed
+    original_adjudicate, original_summary = config.ADJUDICATE, config.SUMMARY
+    try:
+        engine.ensure_installed = lambda: {"installed": True}
+        config.ADJUDICATE = False
+        config.SUMMARY = False
+        # a bare list, exactly as the model answered on Colab
+        engine.generate_json = lambda *a, **k: ([finding()], {"parsed": True, "attempts": 1})
+        analysis = core.analyze(document(), "EXTERNAL_VENDOR")
+        assert analysis.detections, "the bare-list answer was thrown away"
+        assert analysis.detections[0].original_text == "1045837299"
+        assert analysis.detections[0].action == Action.REMOVE.value
+    finally:
+        engine.generate_json = original_json
+        engine.ensure_installed = original_install
+        config.ADJUDICATE, config.SUMMARY = original_adjudicate, original_summary
+    return "verified: a bare list becomes a real decision"
+
+
 def test_json_with_a_fence_is_parsed():
     payload = engine.extract_json('```json\n{"findings": []}\n```')
     assert payload == {"findings": []}

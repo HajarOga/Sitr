@@ -159,3 +159,31 @@ behaviour unchanged.
 - No training run has happened yet: the numbers above are from reference answers, not from
   a model. `training/COLAB.md` §4 produces the real before/after table on a free T4, and
   the adapters it saves are what the report should quote.
+
+## 0.3.1 — the model's answer is read in both shapes it actually uses
+
+**Fixed**
+
+- `app/core.py` accepted the model's findings only as `{"findings": [...]}`. The model also
+  answers with a **bare array** `[...]`, and that answer was silently discarded: on a
+  single-part document it failed loudly, but on a multi-part document the discard was
+  recorded as a note and the release went out **with those values still in it**. Nobody
+  noticed until a Colab baseline run put a real model behind the evaluation harness, where
+  `json.loads(answer)["findings"]` raised `TypeError: list indices must be integers`.
+  `items_from()` and `answered()` now read either shape, for both the findings and the second
+  look's decisions, while `{"findings": []}` remains a valid "nothing to redact" rather than
+  a failure.
+- `evaluation/metrics.py` and `evaluation/evaluate.py` had the same class of mistake in the
+  other direction: `engine.generate_json()` returns a **parsed payload**, and the harness
+  treated it as text, printing the key-count of a dictionary as if it were a character count
+  ("1 chars back") and then crashing on `.strip()`. Answers are now stored as JSON text, the
+  run reports findings counts and model time, and `parse_answer()` accepts a string, an
+  object, or nothing.
+
+**Verified**
+
+- 46 tests pass, including: a bare array becomes a real decision end to end, an empty
+  findings list is not treated as a failure, a parsed answer scores identically to its text,
+  and no answer at all is scored as a leak rather than raising.
+- Both fixes came out of the first real model run, which is the argument for running the
+  baseline before trusting any of it.
