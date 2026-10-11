@@ -1,0 +1,10 @@
+Subject: Annual service visit for the generator
+
+Hello,
+
+We are arranging the annual maintenance visit for the generator at the Rawdah warehouse.
+The site contact is Nawaf Saleh Al-Harbi, and his mobile is +966 56 699 8811.
+Please send the technician's report to facilities@example.test when the visit is done.
+
+For the invoice, our VAT number is 310445566700003 and the commercial registration is 1010884411.
+Payment will be transferred to the company account, never to a personal account.

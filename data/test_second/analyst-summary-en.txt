@@ -1,0 +1,5 @@
+Monthly service performance summary, written for internal analysis.
+
+Service ticket volume grew 12% in September. The largest single contributor was the customer
+Rakan Adel Al-Dossari (customer ID CUST-884213), who raised nine tickets about the same lift.
+Average resolution time came down from 3.4 days to 2.6 days over the same month.

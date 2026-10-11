@@ -1,0 +1,33 @@
+{
+ "document_id": "support-call-ar",
+ "receiver": "CUSTOMER_SUPPORT",
+ "language": "ar",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "لمى خالد الزهراني",
+   "type": "PERSON_NAME",
+   "start": 40,
+   "end": 57
+  },
+  {
+   "text": "٠٥٤٥٦٦٧٧٨٨",
+   "type": "PHONE",
+   "start": 109,
+   "end": 119
+  },
+  {
+   "text": "lamaz@example.com",
+   "type": "EMAIL",
+   "start": 139,
+   "end": 156
+  },
+  {
+   "text": "1055664477",
+   "type": "NATIONAL_ID",
+   "start": 176,
+   "end": 186
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}
