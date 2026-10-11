@@ -273,6 +273,7 @@ def aggregate(scores: list[DocumentScore]) -> dict:
         "must_not_be_visible": must_go,
         "reported_items": reported,
         "structured": ratio(sum(s.structured_ok for s in scores), reported),
+        "citations_made": sum(s.citations_made for s in scores),
         "citation": ratio(sum(s.citations_ok for s in scores),
                           sum(s.citations_made for s in scores)),
         "action_agreement": ratio(sum(s.actions_ok for s in scores),
@@ -300,7 +301,10 @@ def format_report(metrics: dict, scores: list[DocumentScore], title: str = "") -
                      f"{len(score.leaked):>8}")
     lines += ["",
               f"structured output   : {metrics['structured'] * 100:5.1f}%",
-              f"citation validity   : {metrics['citation'] * 100:5.1f}%",
+              (f"citation validity   : {metrics['citation'] * 100:5.1f}%"
+               if metrics.get("citations_made") else
+               "citation validity   : n/a - the policy is silent here, so there is no rule "
+               "to cite"),
               f"action agreement    : {metrics['action_agreement'] * 100:5.1f}%",
               f"finding recall      : {metrics['finding_recall'] * 100:5.1f}%",
               f"leak rate           : {metrics['leak_rate'] * 100:5.1f}%"
@@ -318,14 +322,18 @@ def comparison(metrics: dict[str, dict]) -> str:
     lines = ["metric".ljust(22) + "".join(name.ljust(width) for name in names),
              "-" * (22 + width * len(names))]
     for key, label in (("structured", "structured output"),
-                       ("citation", "citation validity"),
+                       ("_citation_or_na", "citation validity"),
                        ("action_agreement", "action agreement"),
                        ("finding_recall", "finding recall"),
                        ("leak_rate", "leak rate"),
                        ("deferred_rate", "deferred to a person")):
         row = label.ljust(22)
         for name in names:
-            value = metrics[name].get(key)
+            if key == "_citation_or_na" and not metrics[name].get("citations_made"):
+                # 0% would read as a failure; the truth is that nothing could be cited
+                row += "n/a".ljust(width)
+                continue
+            value = metrics[name].get(key if key != "_citation_or_na" else "citation")
             row += (f"{value * 100:.1f}%".ljust(width) if isinstance(value, (int, float))
                     else "-".ljust(width))
         lines.append(row)

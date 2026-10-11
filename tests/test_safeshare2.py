@@ -750,6 +750,25 @@ def test_a_labelled_line_covers_its_value_but_a_document_echo_does_not():
     assert line_score["leak_rate"] == 0.0, line_score
 
 
+def test_citation_validity_says_n_a_when_nothing_can_be_cited():
+    """On a receiver with no policy nothing can be cited, and "0.0%" reads as a failure.
+
+    The whole point of `data/test_no_rules` is that every answer there is ASK_HUMAN, so no rule
+    is cited and the citation metric has no denominator. Printing 0% would make a correct run
+    look broken on a slide.
+    """
+    from evaluation import metrics as M
+
+    items = [{"text": "1045837299", "type": "NATIONAL_ID"}]
+    nothing_to_cite = json.dumps({"findings": []})
+    score = M.score(nothing_to_cite, items, "CUSTOM", document_id="silent")
+    summary = M.aggregate([score])
+    assert summary["citations_made"] == 0
+    assert "n/a" in M.format_report(summary, [score])
+    assert "n/a" in M.comparison({"a": summary})
+    return "verified: no denominator reads as n/a, not as 0.0%"
+
+
 def test_the_dpo_length_check_counts_a_pair_before_the_model_loads():
     """A pair longer than the budget is dropped by the trainer, and if all are dropped the run
     dies with an error that mentions nothing about token budgets. This counts first."""

@@ -175,13 +175,31 @@ must go — and the frozen test set cannot measure judgement, because every docu
 to a receiver that has a written policy. Its guards also make the cheap answer always
 available: an ungrounded action becomes a question, not a leak.
 
-So the honest conclusion at this point is that the fine-tuned adapter is the better model
-**on this test set**, and whether alignment earns its place depends on the no-rule set
-(`data/test_no_rules`), which is the only thing here that scores the behaviour DPO was trained
-for. If DPO asks more often there without leaking, its cost on the standard set is a
-documented trade and can be decided on purpose; if it does not, the alignment step is reported
-as run, measured, and not kept — which is a legitimate engineering result, and the numbers are
-the evidence either way.
+### The alignment verdict
+
+`data/test_no_rules` — the same three documents addressed to the receiver with no policy — is
+the only measurement here that scores what DPO was trained for. Twenty values, and the one
+correct answer for each is ASK_HUMAN:
+
+| no-rule set | base | after LoRA | after LoRA + DPO |
+|---|---|---|---|
+| action agreement | 0.0% | **100%** | **100%** |
+| finding recall | 0.0% | 100% | 100% |
+| **leak rate** | **100%** (20 values published) | **0.0%** | **0.0%** |
+| deferred to a person | 0% | 100% (20 values) | 100% |
+
+The base model reported nothing at all and published all twenty values. Both adapted models ask
+a person every time. **Alignment adds nothing measurable over fine-tuning — and the reason is in
+the training data:** each document was trained against all five receivers, including `CUSTOM`,
+the one with no rules, where every target answer is ASK_HUMAN. The abstention behaviour was
+therefore already taught by the fine-tuning step, and DPO had no behaviour left to add. What it
+did add was a small shift away from the SFT answers, visible as the extra leaked value and the
+2.8-point recall drop on the frozen set.
+
+**Decision: ship the fine-tuned (LoRA) adapter.** Alignment is reported as run, measured on both
+sets, and not kept — with the numbers as the evidence. That is what the brief asks for: the
+adaptation step taken, and before-and-after figures that support the choice rather than a claim
+that everything improved.
 
 **The honest caveat, and it belongs in the report:** the training documents and the test
 documents come from the same generator, so they share a writing style even though they share
