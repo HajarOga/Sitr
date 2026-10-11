@@ -1,9 +1,9 @@
 # The second test set — hand-written, prose style
 
-**What it is.** Eight documents written by hand for `scripts/make_second_test_set.py`, spread
-over the four receivers, Arabic and English: a lifting complaint email, a generator service
-visit, an HR transfer memo, an onboarding note, two analyst summaries, a support call log and a
-support chat transcript. 34 labelled values in total.
+**What it is.** Twenty documents written by hand for `scripts/make_second_test_set.py`: **five
+per receiver**, ten Arabic and ten English, **87 labelled values** in total. They are ordinary
+business paperwork — complaint emails, service-visit threads, HR memos and onboarding notes,
+analyst summaries, support call logs and chat transcripts.
 
 **Why it exists.** The frozen set in `data/test/` and the training documents were written by the
 same generator, so they share a house style: labelled lines, one value per line. That measures

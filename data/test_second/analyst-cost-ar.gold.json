@@ -1,0 +1,21 @@
+{
+ "document_id": "analyst-cost-ar",
+ "receiver": "ANALYST",
+ "language": "ar",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "ريم ناصر الشهري",
+   "type": "PERSON_NAME",
+   "start": 93,
+   "end": 108
+  },
+  {
+   "text": "CUST-778410",
+   "type": "CUSTOMER_ID",
+   "start": 121,
+   "end": 132
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

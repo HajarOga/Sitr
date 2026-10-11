@@ -1,0 +1,39 @@
+{
+ "document_id": "vendor-security-en",
+ "receiver": "EXTERNAL_VENDOR",
+ "language": "en",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "Sultan Majed Al-Otaibi",
+   "type": "PERSON_NAME",
+   "start": 139,
+   "end": 161
+  },
+  {
+   "text": "+966 55 133 2244",
+   "type": "PHONE",
+   "start": 170,
+   "end": 186
+  },
+  {
+   "text": "hse@example.com",
+   "type": "EMAIL",
+   "start": 194,
+   "end": 209
+  },
+  {
+   "text": "4471003322",
+   "type": "BANK_ACCOUNT",
+   "start": 241,
+   "end": 251
+  },
+  {
+   "text": "310556677800003",
+   "type": "COMPANY_IDENTIFIER",
+   "start": 264,
+   "end": 279
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

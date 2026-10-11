@@ -1,0 +1,6 @@
+Quarterly churn analysis - internal
+
+Two accounts caused most of the cancelled service contracts this quarter.
+The first is Nada Faisal Al-Mutairi (customer ID CUST-441209), who cancelled after two
+missed visits. The second is Yousef Hamad Al-Muhanna (customer ID CUST-330871), who
+cancelled without raising a single ticket.

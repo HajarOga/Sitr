@@ -1,0 +1,39 @@
+{
+ "document_id": "vendor-hvac-ar",
+ "receiver": "EXTERNAL_VENDOR",
+ "language": "ar",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "نورة سعد الغامدي",
+   "type": "PERSON_NAME",
+   "start": 112,
+   "end": 128
+  },
+  {
+   "text": "0558001122",
+   "type": "PHONE",
+   "start": 137,
+   "end": 147
+  },
+  {
+   "text": "n.ghamdi@example.com",
+   "type": "EMAIL",
+   "start": 167,
+   "end": 187
+  },
+  {
+   "text": "حي العارض، شارع الأمير سلطان، مبنى 6",
+   "type": "ADDRESS",
+   "start": 201,
+   "end": 237
+  },
+  {
+   "text": "310778899000003",
+   "type": "COMPANY_IDENTIFIER",
+   "start": 270,
+   "end": 285
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

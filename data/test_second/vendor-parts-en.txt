@@ -1,0 +1,9 @@
+Spare parts order - reference SP-2291
+
+Please supply two control boards for the lifts at the Sulaimaniyah building.
+Our technical contact is Fahad Nasser Al-Zahrani, mobile 0567008899.
+Send the delivery note to procurement@example.test.
+
+Company registration: 1012334455
+Payment runs from the finance system to your registered account, so no bank details are
+needed in this message.

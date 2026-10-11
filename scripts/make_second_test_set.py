@@ -7,8 +7,8 @@ same generator, so they share a house style: labelled lines, one value per line.
 whether the model learned the task, but it cannot tell us whether it survives a document that
 does not look like the training data.
 
-These eight documents were written by hand, in sentences, with the personal data embedded in
-prose rather than on labelled lines. They belong to no existing set, and no value here appears
+These twenty documents were written by hand, in sentences, with the personal data embedded
+in prose rather than on labelled lines. They belong to no existing set, and no value here appears
 in `data/train/`, `data/test/` or `data/test_no_rules/` - the script proves that on every run
 and refuses to write anything if a value collides.
 
@@ -184,6 +184,229 @@ Agent: Noted. I have updated the callback number and left a note for the technic
             ("0534778899", "PHONE"),
             ("Turki Bander Al-Shammari", "PERSON_NAME"),
             ("CUST-905517", "CUSTOMER_ID"),
+        ],
+    },
+    {
+        "id": "vendor-hvac-ar",
+        "receiver": "EXTERNAL_VENDOR",
+        "language": "ar",
+        "text": """طلب صيانة مكيفات - فرع العارض
+
+نرجو منكم إرسال فني لصيانة ثلاث وحدات تكييف في فرع العارض.
+جهة الاتصال في الفرع: نورة سعد الغامدي
+الجوال: 0558001122
+البريد الإلكتروني: n.ghamdi@example.com
+عنوان الفرع: حي العارض، شارع الأمير سلطان، مبنى 6
+رقم ضريبة القيمة المضافة للفرع: 310778899000003
+نرجو إرسال عرض السعر قبل الزيارة.""",
+        "spans": [
+            ("نورة سعد الغامدي", "PERSON_NAME"),
+            ("0558001122", "PHONE"),
+            ("n.ghamdi@example.com", "EMAIL"),
+            ("حي العارض، شارع الأمير سلطان، مبنى 6", "ADDRESS"),
+            ("310778899000003", "COMPANY_IDENTIFIER"),
+        ],
+    },
+    {
+        "id": "vendor-parts-en",
+        "receiver": "EXTERNAL_VENDOR",
+        "language": "en",
+        "text": """Spare parts order - reference SP-2291
+
+Please supply two control boards for the lifts at the Sulaimaniyah building.
+Our technical contact is Fahad Nasser Al-Zahrani, mobile 0567008899.
+Send the delivery note to procurement@example.test.
+
+Company registration: 1012334455
+Payment runs from the finance system to your registered account, so no bank details are
+needed in this message.""",
+        "spans": [
+            ("Fahad Nasser Al-Zahrani", "PERSON_NAME"),
+            ("0567008899", "PHONE"),
+            ("procurement@example.test", "EMAIL"),
+            ("1012334455", "COMPANY_IDENTIFIER"),
+        ],
+    },
+    {
+        "id": "vendor-security-en",
+        "receiver": "EXTERNAL_VENDOR",
+        "language": "en",
+        "text": """Security cover request for the warehouse
+
+We need two guards for the night shift at the Rawdah warehouse starting Sunday.
+Site supervisor: Sultan Majed Al-Otaibi
+Mobile: +966 55 133 2244
+Email: hse@example.com
+
+Bank account on the contract: 4471003322
+VAT number: 310556677800003""",
+        "spans": [
+            ("Sultan Majed Al-Otaibi", "PERSON_NAME"),
+            ("+966 55 133 2244", "PHONE"),
+            ("hse@example.com", "EMAIL"),
+            ("4471003322", "BANK_ACCOUNT"),
+            ("310556677800003", "COMPANY_IDENTIFIER"),
+        ],
+    },
+    {
+        "id": "hr-payroll-ar",
+        "receiver": "INTERNAL_HR",
+        "language": "ar",
+        "text": """مذكرة داخلية - تعديل بيانات الراتب
+
+الموظف: عبدالعزيز ماجد الدوسري
+الرقم الوظيفي: EMP-61004
+رقم الهوية الوطنية: 1067788990
+الحساب البنكي المحفوظ في النظام: 2299105544
+جوال الموظف: 0532004455
+لا حاجة لإرسال أي من البيانات أعلاه خارج إدارة الموارد البشرية.""",
+        "spans": [
+            ("عبدالعزيز ماجد الدوسري", "PERSON_NAME"),
+            ("EMP-61004", "EMPLOYEE_ID"),
+            ("1067788990", "NATIONAL_ID"),
+            ("2299105544", "BANK_ACCOUNT"),
+            ("0532004455", "PHONE"),
+        ],
+    },
+    {
+        "id": "hr-exit-en",
+        "receiver": "INTERNAL_HR",
+        "language": "en",
+        "text": """Exit checklist - departing employee
+
+Employee: Layla Sami Al-Ghamdi
+Employee ID: EMP-58822
+Personal email for the final settlement: layla.g@example.test
+Mobile: 0542773311
+Home address on file: Al Qadisiyah district, Street 4, Building 12
+Date of birth: 1987-05-30""",
+        "spans": [
+            ("Layla Sami Al-Ghamdi", "PERSON_NAME"),
+            ("EMP-58822", "EMPLOYEE_ID"),
+            ("layla.g@example.test", "EMAIL"),
+            ("0542773311", "PHONE"),
+            ("Al Qadisiyah district, Street 4, Building 12", "ADDRESS"),
+            ("1987-05-30", "DATE_OF_BIRTH"),
+        ],
+    },
+    {
+        "id": "hr-training-ar",
+        "receiver": "INTERNAL_HR",
+        "language": "ar",
+        "text": """ترشيح لحضور برنامج تدريبي
+
+نرشح الموظفة جواهر تركي السبيعي (الرقم الوظيفي EMP-60077) لحضور برنامج إدارة المشاريع.
+رقم الجوال للتواصل: 0566221188
+رقم الهوية: 1033445566
+جواز السفر المسجّل في الملف: R4410977
+تاريخ الميلاد: 1995-09-12""",
+        "spans": [
+            ("جواهر تركي السبيعي", "PERSON_NAME"),
+            ("EMP-60077", "EMPLOYEE_ID"),
+            ("0566221188", "PHONE"),
+            ("1033445566", "NATIONAL_ID"),
+            ("R4410977", "PASSPORT_NUMBER"),
+            ("1995-09-12", "DATE_OF_BIRTH"),
+        ],
+    },
+    {
+        "id": "analyst-churn-en",
+        "receiver": "ANALYST",
+        "language": "en",
+        "text": """Quarterly churn analysis - internal
+
+Two accounts caused most of the cancelled service contracts this quarter.
+The first is Nada Faisal Al-Mutairi (customer ID CUST-441209), who cancelled after two
+missed visits. The second is Yousef Hamad Al-Muhanna (customer ID CUST-330871), who
+cancelled without raising a single ticket.""",
+        "spans": [
+            ("Nada Faisal Al-Mutairi", "PERSON_NAME"),
+            ("CUST-441209", "CUSTOMER_ID"),
+            ("Yousef Hamad Al-Muhanna", "PERSON_NAME"),
+            ("CUST-330871", "CUSTOMER_ID"),
+        ],
+    },
+    {
+        "id": "analyst-cost-ar",
+        "receiver": "ANALYST",
+        "language": "ar",
+        "text": """تحليل التكلفة - الربع الثالث
+
+ارتفعت تكلفة قطع الغيار بنسبة 9% مقارنة بالربع الثاني.
+العميلة ريم ناصر الشهري (رقم العميل CUST-778410) هي الأعلى في عدد الزيارات المتكررة.
+متوسط تكلفة الزيارة الواحدة 420 ريال، ولم تُسجّل أي مطالبة تعويض هذا الربع.""",
+        "spans": [
+            ("ريم ناصر الشهري", "PERSON_NAME"),
+            ("CUST-778410", "CUSTOMER_ID"),
+        ],
+    },
+    {
+        "id": "analyst-export-en",
+        "receiver": "ANALYST",
+        "language": "en",
+        "text": """Data export summary - September
+
+The export covered 1,204 service records. Contact details were included in the raw file,
+for example the case owner Amal Yousef Al-Harbi, email amal.h@example.com, and the
+callback number +966 55 099 8877. The analysis itself uses only the customer identifier.""",
+        "spans": [
+            ("Amal Yousef Al-Harbi", "PERSON_NAME"),
+            ("amal.h@example.com", "EMAIL"),
+            ("+966 55 099 8877", "PHONE"),
+        ],
+    },
+    {
+        "id": "support-refund-ar",
+        "receiver": "CUSTOMER_SUPPORT",
+        "language": "ar",
+        "text": """سجل طلب استرداد
+
+تقدّم العميل خالد عبدالرحمن العمري بطلب استرداد مبلغ 320 ريال عن زيارة لم تُنفَّذ.
+جواله للتواصل: 0509447722
+البريد الإلكتروني: khaled.a@example.com
+رقم الهوية الوطنية: 1078899112 وتم التحقق منه في المكالمة.
+رقم العميل: CUST-552340""",
+        "spans": [
+            ("خالد عبدالرحمن العمري", "PERSON_NAME"),
+            ("0509447722", "PHONE"),
+            ("khaled.a@example.com", "EMAIL"),
+            ("1078899112", "NATIONAL_ID"),
+            ("CUST-552340", "CUSTOMER_ID"),
+        ],
+    },
+    {
+        "id": "support-visit-en",
+        "receiver": "CUSTOMER_SUPPORT",
+        "language": "en",
+        "text": """Technician visit confirmation
+
+Customer: Maha Saleh Al-Dosari
+Mobile for the callback: 0567331188
+Email: maha.dosari@example.com
+Visit address: Al Sahafah district, Building 7, Office 302
+The technician will arrive between 10:00 and 12:00.""",
+        "spans": [
+            ("Maha Saleh Al-Dosari", "PERSON_NAME"),
+            ("0567331188", "PHONE"),
+            ("maha.dosari@example.com", "EMAIL"),
+            ("Al Sahafah district, Building 7, Office 302", "ADDRESS"),
+        ],
+    },
+    {
+        "id": "support-escalation-ar",
+        "receiver": "CUSTOMER_SUPPORT",
+        "language": "ar",
+        "text": """سجل تصعيد - عميل متكرر الشكوى
+
+العميل فيصل عمر الزهراني (رقم العميل CUST-661877) أبلغ عن تأخر ثالث زيارة.
+جواله: 0557112299
+البريد الإلكتروني: faisal.z@example.com
+طلبت إدارة الخدمة من الفريق الاتصال به لتحديد موعد جديد.""",
+        "spans": [
+            ("فيصل عمر الزهراني", "PERSON_NAME"),
+            ("0557112299", "PHONE"),
+            ("faisal.z@example.com", "EMAIL"),
+            ("CUST-661877", "CUSTOMER_ID"),
         ],
     },
 ]

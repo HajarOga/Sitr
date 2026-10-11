@@ -1,0 +1,39 @@
+{
+ "document_id": "support-refund-ar",
+ "receiver": "CUSTOMER_SUPPORT",
+ "language": "ar",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "خالد عبدالرحمن العمري",
+   "type": "PERSON_NAME",
+   "start": 30,
+   "end": 51
+  },
+  {
+   "text": "0509447722",
+   "type": "PHONE",
+   "start": 115,
+   "end": 125
+  },
+  {
+   "text": "khaled.a@example.com",
+   "type": "EMAIL",
+   "start": 145,
+   "end": 165
+  },
+  {
+   "text": "1078899112",
+   "type": "NATIONAL_ID",
+   "start": 186,
+   "end": 196
+  },
+  {
+   "text": "CUST-552340",
+   "type": "CUSTOMER_ID",
+   "start": 237,
+   "end": 248
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}
