@@ -934,6 +934,108 @@ def test_a_fenced_answer_still_counts_as_structured():
     assert any("fence" in problem for problem in problems), problems
 
 
+# ------------------------------------------------- the released document: summary and Q&A
+# A reading aid on the Policy page. It is given the released text only and never changes a
+# decision, so what is tested is what the model is shown and what happens when it fails.
+
+
+def _stub_model(answer="ok"):
+    """Replace engine.generate_json with a recorder; returns (calls, restore)."""
+    seen: list[tuple[str, list[dict]]] = []
+    original = engine.generate_json
+
+    def fake(messages, *, purpose="json", max_new_tokens=None, retries=2):
+        seen.append((purpose, messages))
+        return ({"answer": answer} if answer is not None else None), {"parsed": True}
+
+    engine.generate_json = fake
+    return seen, lambda: setattr(engine, "generate_json", original)
+
+
+def test_a_short_released_document_goes_to_the_model_whole_and_alone():
+    from app.policy import document_qa
+
+    released = "Contract between ACME and the vendor.\nPhone: 0500000000 (synthetic)"
+    seen, restore = _stub_model("The phone is 0500000000.")
+    try:
+        result = document_qa.ask(released, "What is the phone number?")
+    finally:
+        restore()
+    assert len(seen) == 1 and result["whole_document"] is True
+    system, user = seen[0][1][0]["content"], seen[0][1][1]["content"]
+    assert released in user and "What is the phone number?" in user
+    assert "RELEASED" in system and "never try to guess" in system
+    assert result["answer"] == "The phone is 0500000000."
+
+
+def test_a_long_released_document_sends_only_the_passages_that_match_the_question():
+    from app.policy import document_qa
+
+    lines = [f"البند {i}: نص عادي عن الخدمات والتسليم رقم {i}" for i in range(2000)]
+    lines[1234] = "تنتهي صلاحية العقد في تاريخ 2027-03-01 ويجدد تلقائيا"
+    released = "\n".join(lines)
+    assert len(released) > config.MAX_DOC_CHARS
+    seen, restore = _stub_model()
+    try:
+        result = document_qa.ask(released, "متى تنتهي صلاحية العقد؟")
+    finally:
+        restore()
+    sent = seen[0][1][1]["content"]
+    assert "2027-03-01" in sent, "the passage that answers the question was not sent"
+    assert len(sent) < config.MAX_DOC_CHARS, len(sent)
+    assert result["whole_document"] is False and result["notes"]
+
+
+def test_a_long_summary_is_built_part_by_part_and_then_combined():
+    from app.policy import document_qa
+
+    released = "\n".join(f"line {i} with some content about the contract" for i in
+                         range(config.MAX_DOC_CHARS // 10))
+    seen, restore = _stub_model("a summary")
+    try:
+        result = document_qa.summarize(released)
+    finally:
+        restore()
+    purposes = [purpose for purpose, _ in seen]
+    assert len(seen) > 2 and purposes[-1] == "document summary combine", purposes
+    assert all("part" in purpose for purpose in purposes[:-1]), purposes
+    assert result["kind"] == "summary" and result["answer"] == "a summary"
+
+
+def test_a_model_that_returns_nothing_is_an_error_not_an_empty_answer():
+    from app.policy import document_qa
+
+    seen, restore = _stub_model(None)
+    try:
+        for attempt in (lambda: document_qa.ask("some released text", "a question"),
+                        lambda: document_qa.summarize("some released text")):
+            try:
+                attempt()
+            except document_qa.DocumentQAError:
+                continue
+            raise AssertionError("an empty model answer was shown as if it were an answer")
+    finally:
+        restore()
+
+
+def test_an_empty_question_or_an_empty_document_is_refused_before_any_model_call():
+    from app.policy import document_qa
+
+    seen, restore = _stub_model()
+    try:
+        for attempt in (lambda: document_qa.ask("text", "   "),
+                        lambda: document_qa.ask("   ", "a question"),
+                        lambda: document_qa.summarize("   ")):
+            try:
+                attempt()
+            except document_qa.DocumentQAError:
+                continue
+            raise AssertionError("an empty request reached the model")
+        assert seen == [], "the model was called for an empty request"
+    finally:
+        restore()
+
+
 # ---------------------------------------------------------------------------- runner
 
 
