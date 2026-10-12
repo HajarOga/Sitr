@@ -158,7 +158,7 @@ def _second_look(detections: list[Detection], document: Document, receiver: str,
             "why_questioned": d.meta.get("ask_reason", "low confidence"),
         } for d in batch]
 
-        payload, meta = engine.generate_json(
+        payload, _ = engine.generate_json(
             prompts.adjudicate_messages(payload_items, lib.receiver_label(receiver),
                                         _rules_for_prompt(lib, receiver)),
             purpose="adjudicate", max_new_tokens=900)

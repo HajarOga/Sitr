@@ -41,7 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import config                                      # noqa: E402
 from app.audit import store as audit                        # noqa: E402
-from app.core import analyze, apply_decisions, write_summary  # noqa: E402
+from app.core import analyze, write_summary                    # noqa: E402
 from app.document_processing import readers                 # noqa: E402
 from app.document_processing.writers import safe_text, write_release  # noqa: E402
 from app.llm import engine                                  # noqa: E402
@@ -956,10 +956,6 @@ POLICY_QUICK_QUESTIONS = [
     "What does the analyst receive?",
     "What happens if no rule covers an item?",
 ]
-
-
-def _action_badge(action: str) -> str:
-    return badge(action, action)
 
 
 def page_policy() -> None:
