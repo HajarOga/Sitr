@@ -1,0 +1,39 @@
+{
+ "document_id": "hr-payroll-ar",
+ "receiver": "INTERNAL_HR",
+ "language": "ar",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "عبدالعزيز ماجد الدوسري",
+   "type": "PERSON_NAME",
+   "start": 44,
+   "end": 66
+  },
+  {
+   "text": "EMP-61004",
+   "type": "EMPLOYEE_ID",
+   "start": 82,
+   "end": 91
+  },
+  {
+   "text": "1067788990",
+   "type": "NATIONAL_ID",
+   "start": 112,
+   "end": 122
+  },
+  {
+   "text": "2299105544",
+   "type": "BANK_ACCOUNT",
+   "start": 156,
+   "end": 166
+  },
+  {
+   "text": "0532004455",
+   "type": "PHONE",
+   "start": 180,
+   "end": 190
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

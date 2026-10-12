@@ -1,0 +1,12 @@
+Service Complaint Report
+Reference: COMPLAINT-2026-100
+Customer name: Majed Saud Al-Anazi
+National ID: 1055667788
+Mobile: 0533221100
+Email: m.anazi@example.com
+Address: Al Yasmin district, Street 7, Villa 22
+Customer no.: CUST-7201
+The air conditioning unit stopped cooling and the customer reported a loud noise before it shut down.
+Technician visit on 06/10/2026 confirmed the compressor failed.
+Parts required: compressor, capacitor.
+Total: 2,480.00 SAR

@@ -1,0 +1,34 @@
+{
+  "document_id": "HJ-E06",
+  "receiver": "ANALYST",
+  "language": "en",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "Noura Sami Al-Harbi",
+      "type": "PERSON_NAME",
+      "start": 54,
+      "end": 73
+    },
+    {
+      "text": "CUST-821406",
+      "type": "CUSTOMER_ID",
+      "start": 87,
+      "end": 98
+    },
+    {
+      "text": "Khalid Faisal Al-Otaibi",
+      "type": "PERSON_NAME",
+      "start": 115,
+      "end": 138
+    },
+    {
+      "text": "CUST-903175",
+      "type": "CUSTOMER_ID",
+      "start": 152,
+      "end": 163
+    }
+  ],
+  "difficulty": "easy",
+  "difficulty_rationale": "4 values; English analyst prose; two people and two customer IDs."
+}

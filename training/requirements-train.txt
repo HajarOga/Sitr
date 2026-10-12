@@ -1,0 +1,20 @@
+# Extra libraries for the adaptation path only.
+#
+# The application itself does not need any of these - it runs on a laptop with
+# requirements.txt and nothing else. These are for training the adapter and for running
+# the model locally:
+#
+#   pip install -r requirements.txt -r training/requirements-train.txt
+#
+# On a free Colab T4 the versions Colab already ships usually work; if a wheel is missing,
+# pin to the versions below.
+
+datasets>=2.20
+accelerate>=0.34
+transformers>=4.45
+peft>=0.13
+trl>=0.12
+bitsandbytes>=0.44        # 4-bit loading (QLoRA). Linux/CUDA only - not on macOS
+torch>=2.4                # Colab and Kaggle provide this already
+sentencepiece>=0.2        # the Qwen tokenizer
+protobuf>=5.27

@@ -1,0 +1,421 @@
+{
+  "version": "2026-10-08",
+  "owner": "SafeShare capstone team",
+  "note": "The company rules library. It is data, not code, and it lives outside the model on purpose: the model retrieves a rule and cites its id, and must never invent one. Add a rule by editing this file.",
+  "receivers": {
+    "INTERNAL_HR": {
+      "label": "Internal HR",
+      "purpose": "Employee records, payroll and HR processing",
+      "description": "HR processes the employee's own record, so identifiers are allowed when they are needed for that processing."
+    },
+    "EXTERNAL_VENDOR": {
+      "label": "External Vendor",
+      "purpose": "Repair or service work that requires the complaint and invoice details",
+      "description": "An outside company. It gets what it needs to do the job, and nothing that identifies a person."
+    },
+    "ANALYST": {
+      "label": "Analyst",
+      "purpose": "Internal analysis and reporting",
+      "description": "Works with totals and trends. Needs business figures, not people."
+    },
+    "CUSTOMER_SUPPORT": {
+      "label": "Customer Support",
+      "purpose": "Handling the customer's case and calling them back",
+      "description": "Talks to the customer directly, so contact details are allowed, but official identifiers are not."
+    },
+    "CUSTOM": {
+      "label": "Custom receiver",
+      "purpose": "A receiver with no rules yet",
+      "description": "No rules are defined for this receiver, so every sensitive item comes back as ASK_HUMAN. The system does not invent a rule."
+    }
+  },
+  "rules": [
+    {
+      "rule_id": "VENDOR-PII-001",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "PERSON_NAME",
+      "action": "REPLACE",
+      "reason": "Customer names must not be shared with external vendors.",
+      "citation": "Company data-handling policy, vendor sharing, clause 4.2"
+    },
+    {
+      "rule_id": "VENDOR-PII-002",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "NATIONAL_ID",
+      "action": "REMOVE",
+      "reason": "External vendors must not receive National ID numbers.",
+      "citation": "Company data-handling policy, vendor sharing, clause 4.3"
+    },
+    {
+      "rule_id": "VENDOR-PII-003",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "PHONE",
+      "action": "REMOVE",
+      "reason": "External vendors must not receive customer phone numbers.",
+      "citation": "Company data-handling policy, vendor sharing, clause 4.3"
+    },
+    {
+      "rule_id": "VENDOR-PII-004",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "EMAIL",
+      "action": "REMOVE",
+      "reason": "Vendors contact the company, not the customer, so the customer's email is not needed.",
+      "citation": "Company data-handling policy, vendor sharing, clause 4.4"
+    },
+    {
+      "rule_id": "VENDOR-PII-005",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "ADDRESS",
+      "action": "REPLACE",
+      "reason": "The vendor needs the area to plan the visit, but not the full home address.",
+      "citation": "Company data-handling policy, vendor sharing, clause 4.5"
+    },
+    {
+      "rule_id": "VENDOR-PII-006",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "IBAN",
+      "action": "REMOVE",
+      "reason": "Bank details are never shared with external vendors; payment runs through the finance system.",
+      "citation": "Company data-handling policy, finance, clause 6.1"
+    },
+    {
+      "rule_id": "VENDOR-PII-007",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "BANK_ACCOUNT",
+      "action": "REMOVE",
+      "reason": "Bank account numbers are never shared with external vendors.",
+      "citation": "Company data-handling policy, finance, clause 6.1"
+    },
+    {
+      "rule_id": "VENDOR-PII-008",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "DATE_OF_BIRTH",
+      "action": "REMOVE",
+      "reason": "A date of birth is not needed to carry out a repair.",
+      "citation": "Company data-handling policy, minimum data, clause 2.2"
+    },
+    {
+      "rule_id": "VENDOR-PII-009",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "PASSPORT_NUMBER",
+      "action": "REMOVE",
+      "reason": "Passport numbers are never shared outside the company.",
+      "citation": "Company data-handling policy, vendor sharing, clause 4.3"
+    },
+    {
+      "rule_id": "VENDOR-PII-010",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "CUSTOMER_ID",
+      "action": "REPLACE",
+      "reason": "The vendor needs a reference to match the visit to the job, but not the real customer number.",
+      "citation": "Company data-handling policy, vendor sharing, clause 4.6"
+    },
+    {
+      "rule_id": "VENDOR-PII-011",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "EMPLOYEE_ID",
+      "action": "REMOVE",
+      "reason": "Employee identifiers of our own staff are not shared with vendors.",
+      "citation": "Company data-handling policy, vendor sharing, clause 4.3"
+    },
+    {
+      "rule_id": "VENDOR-PII-012",
+      "receiver": "EXTERNAL_VENDOR",
+      "pii_type": "COMPANY_IDENTIFIER",
+      "action": "KEEP",
+      "reason": "Vendor invoices must carry the company registration and VAT numbers.",
+      "citation": "Finance policy, vendor invoicing, clause 3.1"
+    },
+
+    {
+      "rule_id": "HR-PII-001",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "PERSON_NAME",
+      "action": "KEEP",
+      "reason": "HR may retain employee names when required for HR processing.",
+      "citation": "Company data-handling policy, internal HR, clause 5.1"
+    },
+    {
+      "rule_id": "HR-PII-002",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "NATIONAL_ID",
+      "action": "KEEP",
+      "reason": "The National ID is part of the employee's record and is needed for statutory reporting.",
+      "citation": "Company data-handling policy, internal HR, clause 5.2"
+    },
+    {
+      "rule_id": "HR-PII-003",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "PHONE",
+      "action": "KEEP",
+      "reason": "HR must be able to contact the employee.",
+      "citation": "Company data-handling policy, internal HR, clause 5.3"
+    },
+    {
+      "rule_id": "HR-PII-004",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "EMAIL",
+      "action": "KEEP",
+      "reason": "HR must be able to contact the employee.",
+      "citation": "Company data-handling policy, internal HR, clause 5.3"
+    },
+    {
+      "rule_id": "HR-PII-005",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "ADDRESS",
+      "action": "KEEP",
+      "reason": "The home address is part of the employee's record.",
+      "citation": "Company data-handling policy, internal HR, clause 5.2"
+    },
+    {
+      "rule_id": "HR-PII-006",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "IBAN",
+      "action": "KEEP",
+      "reason": "Payroll needs the employee's own bank details.",
+      "citation": "Payroll policy, clause 2.4"
+    },
+    {
+      "rule_id": "HR-PII-007",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "BANK_ACCOUNT",
+      "action": "KEEP",
+      "reason": "Payroll needs the employee's own bank details.",
+      "citation": "Payroll policy, clause 2.4"
+    },
+    {
+      "rule_id": "HR-PII-008",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "DATE_OF_BIRTH",
+      "action": "KEEP",
+      "reason": "Date of birth is part of the employee record.",
+      "citation": "Company data-handling policy, internal HR, clause 5.2"
+    },
+    {
+      "rule_id": "HR-PII-009",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "PASSPORT_NUMBER",
+      "action": "KEEP",
+      "reason": "Passport details are held in the employee file for travel and residency.",
+      "citation": "Company data-handling policy, internal HR, clause 5.2"
+    },
+    {
+      "rule_id": "HR-PII-010",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "CUSTOMER_ID",
+      "action": "REMOVE",
+      "reason": "Customer references are not part of HR processing.",
+      "citation": "Company data-handling policy, minimum data, clause 2.2"
+    },
+    {
+      "rule_id": "HR-PII-011",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "EMPLOYEE_ID",
+      "action": "KEEP",
+      "reason": "The employee number identifies the record HR is processing.",
+      "citation": "Company data-handling policy, internal HR, clause 5.1"
+    },
+    {
+      "rule_id": "HR-PII-012",
+      "receiver": "INTERNAL_HR",
+      "pii_type": "COMPANY_IDENTIFIER",
+      "action": "KEEP",
+      "reason": "Company registration details are not personal data.",
+      "citation": "Company data-handling policy, scope, clause 1.2"
+    },
+
+    {
+      "rule_id": "ANALYST-PII-001",
+      "receiver": "ANALYST",
+      "pii_type": "PERSON_NAME",
+      "action": "REMOVE",
+      "reason": "Analysts may receive business totals but not personal identifiers.",
+      "citation": "Analytics policy, clause 2.1"
+    },
+    {
+      "rule_id": "ANALYST-PII-002",
+      "receiver": "ANALYST",
+      "pii_type": "NATIONAL_ID",
+      "action": "REMOVE",
+      "reason": "Analysts may receive business totals but not personal identifiers.",
+      "citation": "Analytics policy, clause 2.1"
+    },
+    {
+      "rule_id": "ANALYST-PII-003",
+      "receiver": "ANALYST",
+      "pii_type": "PHONE",
+      "action": "REMOVE",
+      "reason": "Contact details are not needed for analysis.",
+      "citation": "Analytics policy, clause 2.2"
+    },
+    {
+      "rule_id": "ANALYST-PII-004",
+      "receiver": "ANALYST",
+      "pii_type": "EMAIL",
+      "action": "REMOVE",
+      "reason": "Contact details are not needed for analysis.",
+      "citation": "Analytics policy, clause 2.2"
+    },
+    {
+      "rule_id": "ANALYST-PII-005",
+      "receiver": "ANALYST",
+      "pii_type": "ADDRESS",
+      "action": "REPLACE",
+      "reason": "The city is useful for regional analysis; the full address is not.",
+      "citation": "Analytics policy, clause 2.3"
+    },
+    {
+      "rule_id": "ANALYST-PII-006",
+      "receiver": "ANALYST",
+      "pii_type": "IBAN",
+      "action": "REMOVE",
+      "reason": "Bank details are never part of an analysis data set.",
+      "citation": "Analytics policy, clause 2.4"
+    },
+    {
+      "rule_id": "ANALYST-PII-007",
+      "receiver": "ANALYST",
+      "pii_type": "BANK_ACCOUNT",
+      "action": "REMOVE",
+      "reason": "Bank details are never part of an analysis data set.",
+      "citation": "Analytics policy, clause 2.4"
+    },
+    {
+      "rule_id": "ANALYST-PII-008",
+      "receiver": "ANALYST",
+      "pii_type": "DATE_OF_BIRTH",
+      "action": "REPLACE",
+      "reason": "An age band is analytically useful; the exact date of birth is identifying.",
+      "citation": "Analytics policy, clause 2.5"
+    },
+    {
+      "rule_id": "ANALYST-PII-009",
+      "receiver": "ANALYST",
+      "pii_type": "PASSPORT_NUMBER",
+      "action": "REMOVE",
+      "reason": "Analysts may receive business totals but not personal identifiers.",
+      "citation": "Analytics policy, clause 2.1"
+    },
+    {
+      "rule_id": "ANALYST-PII-010",
+      "receiver": "ANALYST",
+      "pii_type": "CUSTOMER_ID",
+      "action": "KEEP",
+      "reason": "A pseudonymous customer reference is needed to join records across tables.",
+      "citation": "Analytics policy, clause 2.6"
+    },
+    {
+      "rule_id": "ANALYST-PII-011",
+      "receiver": "ANALYST",
+      "pii_type": "EMPLOYEE_ID",
+      "action": "KEEP",
+      "reason": "An employee reference is needed to join records across tables.",
+      "citation": "Analytics policy, clause 2.6"
+    },
+    {
+      "rule_id": "ANALYST-PII-012",
+      "receiver": "ANALYST",
+      "pii_type": "COMPANY_IDENTIFIER",
+      "action": "KEEP",
+      "reason": "Company registration details are business information, not personal data.",
+      "citation": "Analytics policy, clause 2.7"
+    },
+
+    {
+      "rule_id": "SUPPORT-PII-001",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "PERSON_NAME",
+      "action": "REPLACE",
+      "reason": "Support sees the case, not the customer's full name.",
+      "citation": "Customer operations policy, clause 3.2"
+    },
+    {
+      "rule_id": "SUPPORT-PII-002",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "NATIONAL_ID",
+      "action": "REMOVE",
+      "reason": "Support never needs the National ID; identity checks are done in the secure portal.",
+      "citation": "Customer operations policy, clause 3.4"
+    },
+    {
+      "rule_id": "SUPPORT-PII-003",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "PHONE",
+      "action": "KEEP",
+      "reason": "Support has to call the customer back about the case.",
+      "citation": "Customer operations policy, clause 3.3"
+    },
+    {
+      "rule_id": "SUPPORT-PII-004",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "EMAIL",
+      "action": "KEEP",
+      "reason": "Support replies to the customer by email.",
+      "citation": "Customer operations policy, clause 3.3"
+    },
+    {
+      "rule_id": "SUPPORT-PII-005",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "ADDRESS",
+      "action": "REPLACE",
+      "reason": "The service area is enough for a call-back note.",
+      "citation": "Customer operations policy, clause 3.5"
+    },
+    {
+      "rule_id": "SUPPORT-PII-006",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "IBAN",
+      "action": "REMOVE",
+      "reason": "Refunds are handled by finance, never by support.",
+      "citation": "Customer operations policy, clause 3.6"
+    },
+    {
+      "rule_id": "SUPPORT-PII-007",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "BANK_ACCOUNT",
+      "action": "REMOVE",
+      "reason": "Refunds are handled by finance, never by support.",
+      "citation": "Customer operations policy, clause 3.6"
+    },
+    {
+      "rule_id": "SUPPORT-PII-008",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "DATE_OF_BIRTH",
+      "action": "REMOVE",
+      "reason": "Not needed to handle the case.",
+      "citation": "Customer operations policy, clause 3.2"
+    },
+    {
+      "rule_id": "SUPPORT-PII-009",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "PASSPORT_NUMBER",
+      "action": "REMOVE",
+      "reason": "Not needed to handle the case.",
+      "citation": "Customer operations policy, clause 3.2"
+    },
+    {
+      "rule_id": "SUPPORT-PII-010",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "CUSTOMER_ID",
+      "action": "KEEP",
+      "reason": "Support needs the customer reference to open the case.",
+      "citation": "Customer operations policy, clause 3.1"
+    },
+    {
+      "rule_id": "SUPPORT-PII-011",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "EMPLOYEE_ID",
+      "action": "REMOVE",
+      "reason": "Internal staff numbers are not part of a customer case file.",
+      "citation": "Customer operations policy, clause 3.2"
+    },
+    {
+      "rule_id": "SUPPORT-PII-012",
+      "receiver": "CUSTOMER_SUPPORT",
+      "pii_type": "COMPANY_IDENTIFIER",
+      "action": "KEEP",
+      "reason": "Company registration details appear on customer documents.",
+      "citation": "Customer operations policy, clause 3.1"
+    }
+  ]
+}

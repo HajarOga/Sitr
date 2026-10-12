@@ -1,0 +1,33 @@
+{
+ "document_id": "support-escalation-ar",
+ "receiver": "CUSTOMER_SUPPORT",
+ "language": "ar",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "فيصل عمر الزهراني",
+   "type": "PERSON_NAME",
+   "start": 38,
+   "end": 55
+  },
+  {
+   "text": "0557112299",
+   "type": "PHONE",
+   "start": 113,
+   "end": 123
+  },
+  {
+   "text": "faisal.z@example.com",
+   "type": "EMAIL",
+   "start": 143,
+   "end": 163
+  },
+  {
+   "text": "CUST-661877",
+   "type": "CUSTOMER_ID",
+   "start": 68,
+   "end": 79
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

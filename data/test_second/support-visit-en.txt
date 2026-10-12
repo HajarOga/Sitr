@@ -1,0 +1,7 @@
+Technician visit confirmation
+
+Customer: Maha Saleh Al-Dosari
+Mobile for the callback: 0567331188
+Email: maha.dosari@example.com
+Visit address: Al Sahafah district, Building 7, Office 302
+The technician will arrive between 10:00 and 12:00.

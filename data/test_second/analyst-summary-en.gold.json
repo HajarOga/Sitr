@@ -1,0 +1,21 @@
+{
+ "document_id": "analyst-summary-en",
+ "receiver": "ANALYST",
+ "language": "en",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "Rakan Adel Al-Dossari",
+   "type": "PERSON_NAME",
+   "start": 162,
+   "end": 183
+  },
+  {
+   "text": "CUST-884213",
+   "type": "CUSTOMER_ID",
+   "start": 197,
+   "end": 208
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

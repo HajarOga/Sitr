@@ -1,0 +1,33 @@
+{
+ "document_id": "analyst-churn-en",
+ "receiver": "ANALYST",
+ "language": "en",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "Nada Faisal Al-Mutairi",
+   "type": "PERSON_NAME",
+   "start": 124,
+   "end": 146
+  },
+  {
+   "text": "CUST-441209",
+   "type": "CUSTOMER_ID",
+   "start": 160,
+   "end": 171
+  },
+  {
+   "text": "Yousef Hamad Al-Muhanna",
+   "type": "PERSON_NAME",
+   "start": 227,
+   "end": 250
+  },
+  {
+   "text": "CUST-330871",
+   "type": "CUSTOMER_ID",
+   "start": 264,
+   "end": 275
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

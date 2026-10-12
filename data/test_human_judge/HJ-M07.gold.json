@@ -1,0 +1,34 @@
+{
+  "document_id": "HJ-M07",
+  "receiver": "CUSTOMER_SUPPORT",
+  "language": "ar",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "أروى مازن الدوسري",
+      "type": "PERSON_NAME",
+      "start": 41,
+      "end": 58
+    },
+    {
+      "text": "٠٥٥٣١٢٩٨٧٦",
+      "type": "PHONE",
+      "start": 90,
+      "end": 100
+    },
+    {
+      "text": "arwa.m@example.test",
+      "type": "EMAIL",
+      "start": 110,
+      "end": 129
+    },
+    {
+      "text": "1082456791",
+      "type": "NATIONAL_ID",
+      "start": 155,
+      "end": 165
+    }
+  ],
+  "difficulty": "medium",
+  "difficulty_rationale": "4 values; Arabic call log; Arabic-Indic phone digits plus email and national ID."
+}

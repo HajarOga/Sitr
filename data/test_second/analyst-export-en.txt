@@ -1,0 +1,5 @@
+Data export summary - September
+
+The export covered 1,204 service records. Contact details were included in the raw file,
+for example the case owner Amal Yousef Al-Harbi, email amal.h@example.com, and the
+callback number +966 55 099 8877. The analysis itself uses only the customer identifier.

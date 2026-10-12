@@ -1,0 +1,34 @@
+{
+  "document_id": "HJ-M08",
+  "receiver": "CUSTOMER_SUPPORT",
+  "language": "ar",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "سامي فهد المطيري",
+      "type": "PERSON_NAME",
+      "start": 25,
+      "end": 41
+    },
+    {
+      "text": "CUST-581420",
+      "type": "CUSTOMER_ID",
+      "start": 54,
+      "end": 65
+    },
+    {
+      "text": "0548127603",
+      "type": "PHONE",
+      "start": 101,
+      "end": 111
+    },
+    {
+      "text": "sami.m@example.test",
+      "type": "EMAIL",
+      "start": 131,
+      "end": 150
+    }
+  ],
+  "difficulty": "medium",
+  "difficulty_rationale": "4 values; Arabic escalation note with values embedded in sentences."
+}

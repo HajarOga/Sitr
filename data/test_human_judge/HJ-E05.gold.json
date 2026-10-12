@@ -1,0 +1,28 @@
+{
+  "document_id": "HJ-E05",
+  "receiver": "CUSTOMER_SUPPORT",
+  "language": "en",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "0556123409",
+      "type": "PHONE",
+      "start": 53,
+      "end": 63
+    },
+    {
+      "text": "Hessa Majed Al-Dosari",
+      "type": "PERSON_NAME",
+      "start": 125,
+      "end": 146
+    },
+    {
+      "text": "CUST-720614",
+      "type": "CUSTOMER_ID",
+      "start": 164,
+      "end": 175
+    }
+  ],
+  "difficulty": "easy",
+  "difficulty_rationale": "3 values; English support chat with explicit phone, name, customer ID."
+}

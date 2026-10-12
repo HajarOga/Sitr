@@ -1,0 +1,77 @@
+{
+ "documents": [
+  {
+   "id": "complaint-en",
+   "receiver": "EXTERNAL_VENDOR",
+   "language": "en",
+   "spans": 6
+  },
+  {
+   "id": "complaint-ar",
+   "receiver": "EXTERNAL_VENDOR",
+   "language": "ar",
+   "spans": 6
+  },
+  {
+   "id": "hr-letter-en",
+   "receiver": "INTERNAL_HR",
+   "language": "en",
+   "spans": 7
+  },
+  {
+   "id": "hr-record-ar",
+   "receiver": "INTERNAL_HR",
+   "language": "ar",
+   "spans": 6
+  },
+  {
+   "id": "kyc-form-ar",
+   "receiver": "EXTERNAL_VENDOR",
+   "language": "mixed",
+   "spans": 8
+  },
+  {
+   "id": "analysis-export",
+   "receiver": "ANALYST",
+   "language": "en",
+   "spans": 6
+  },
+  {
+   "id": "support-ticket-ar",
+   "receiver": "CUSTOMER_SUPPORT",
+   "language": "ar",
+   "spans": 6
+  },
+  {
+   "id": "vendor-invoice",
+   "receiver": "EXTERNAL_VENDOR",
+   "language": "mixed",
+   "spans": 6
+  },
+  {
+   "id": "medical-referral",
+   "receiver": "EXTERNAL_VENDOR",
+   "language": "en",
+   "spans": 5
+  },
+  {
+   "id": "supplier-letter-ar",
+   "receiver": "EXTERNAL_VENDOR",
+   "language": "ar",
+   "spans": 4
+  },
+  {
+   "id": "analysis-ar",
+   "receiver": "ANALYST",
+   "language": "ar",
+   "spans": 4
+  },
+  {
+   "id": "contract-en",
+   "receiver": "CUSTOMER_SUPPORT",
+   "language": "en",
+   "spans": 6
+  }
+ ],
+ "count": 12
+}

@@ -1,0 +1,40 @@
+{
+  "document_id": "HJ-H19",
+  "receiver": "INTERNAL_HR",
+  "language": "ar",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "سارة فهد العتيبي",
+      "type": "PERSON_NAME",
+      "start": 29,
+      "end": 45
+    },
+    {
+      "text": "EMP-90317",
+      "type": "EMPLOYEE_ID",
+      "start": 61,
+      "end": 70
+    },
+    {
+      "text": "1028647391",
+      "type": "NATIONAL_ID",
+      "start": 122,
+      "end": 132
+    },
+    {
+      "text": "3482019756",
+      "type": "BANK_ACCOUNT",
+      "start": 149,
+      "end": 159
+    },
+    {
+      "text": "0564812037",
+      "type": "PHONE",
+      "start": 173,
+      "end": 183
+    }
+  ],
+  "difficulty": "hard",
+  "difficulty_rationale": "5 values; Arabic payroll memo with national ID, bank account, phone."
+}

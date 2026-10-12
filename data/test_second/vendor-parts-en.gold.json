@@ -1,0 +1,33 @@
+{
+ "document_id": "vendor-parts-en",
+ "receiver": "EXTERNAL_VENDOR",
+ "language": "en",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "Fahad Nasser Al-Zahrani",
+   "type": "PERSON_NAME",
+   "start": 141,
+   "end": 164
+  },
+  {
+   "text": "0567008899",
+   "type": "PHONE",
+   "start": 173,
+   "end": 183
+  },
+  {
+   "text": "procurement@example.test",
+   "type": "EMAIL",
+   "start": 211,
+   "end": 235
+  },
+  {
+   "text": "1012334455",
+   "type": "COMPANY_IDENTIFIER",
+   "start": 260,
+   "end": 270
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

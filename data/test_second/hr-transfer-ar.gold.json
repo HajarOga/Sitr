@@ -1,0 +1,39 @@
+{
+ "document_id": "hr-transfer-ar",
+ "receiver": "INTERNAL_HR",
+ "language": "ar",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "هند ناصر العتيبي",
+   "type": "PERSON_NAME",
+   "start": 60,
+   "end": 76
+  },
+  {
+   "text": "EMP-44219",
+   "type": "EMPLOYEE_ID",
+   "start": 92,
+   "end": 101
+  },
+  {
+   "text": "1993-11-02",
+   "type": "DATE_OF_BIRTH",
+   "start": 172,
+   "end": 182
+  },
+  {
+   "text": "1098765432",
+   "type": "NATIONAL_ID",
+   "start": 203,
+   "end": 213
+  },
+  {
+   "text": "0578002244",
+   "type": "PHONE",
+   "start": 236,
+   "end": 246
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

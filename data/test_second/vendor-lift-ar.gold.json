@@ -1,0 +1,39 @@
+{
+ "document_id": "vendor-lift-ar",
+ "receiver": "EXTERNAL_VENDOR",
+ "language": "ar",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "حي الملقا، شارع الأمير تركي، مبنى 22",
+   "type": "ADDRESS",
+   "start": 80,
+   "end": 116
+  },
+  {
+   "text": "سارة عبدالله الحربي",
+   "type": "PERSON_NAME",
+   "start": 133,
+   "end": 152
+  },
+  {
+   "text": "0539110033",
+   "type": "PHONE",
+   "start": 184,
+   "end": 194
+  },
+  {
+   "text": "sara.harbi@example.com",
+   "type": "EMAIL",
+   "start": 210,
+   "end": 232
+  },
+  {
+   "text": "SA72 9000 0000 4471 2026 3391",
+   "type": "IBAN",
+   "start": 301,
+   "end": 330
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+# The key lives in .env, which is NOT committed - a live credential in git history is
+# leaked the moment the repository is shared, and a key that has been sent to an API
+# cannot be un-sent. Copy .env.example to .env and add your own key.
+.env
+.env.local
+.env.*.local
+.ipynb_checkpoints/
+
+# runtime artifacts: temporary uploads, releases, the audit database
+.tmp/
+data/index/
+*.safe.docx
+*.safe.txt
+*.release.txt
+audit.sqlite3
+*.sqlite3
+
+# model weights - never commit these. They are downloaded, not cloned:
+#     python -m scripts.setup_model
+models/
+predictions/
+testing/
+evaluation/results/
+data/export/
+training/lora_adapter/
+training/dpo_adapter/
+*.safetensors
+*.bin
+*.pt
+*.gguf
+
+# secrets - there are none in this project, and there must never be any
+*.key
+*credentials*
+kaggle.json
+token*
+
+# editors and OS
+.DS_Store
+.vscode/settings.json
+.idea/

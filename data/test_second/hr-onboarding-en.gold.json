@@ -1,0 +1,57 @@
+{
+ "document_id": "hr-onboarding-en",
+ "receiver": "INTERNAL_HR",
+ "language": "en",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "Dana Fouad Al-Subaie",
+   "type": "PERSON_NAME",
+   "start": 53,
+   "end": 73
+  },
+  {
+   "text": "EMP-50133",
+   "type": "EMPLOYEE_ID",
+   "start": 106,
+   "end": 115
+  },
+  {
+   "text": "1076543219",
+   "type": "NATIONAL_ID",
+   "start": 129,
+   "end": 139
+  },
+  {
+   "text": "1991-07-23",
+   "type": "DATE_OF_BIRTH",
+   "start": 155,
+   "end": 165
+  },
+  {
+   "text": "S7781234",
+   "type": "PASSPORT_NUMBER",
+   "start": 183,
+   "end": 191
+  },
+  {
+   "text": "0561445566",
+   "type": "PHONE",
+   "start": 209,
+   "end": 219
+  },
+  {
+   "text": "Al Yasmin district, Street 9, Building 41",
+   "type": "ADDRESS",
+   "start": 250,
+   "end": 291
+  },
+  {
+   "text": "3920014477",
+   "type": "BANK_ACCOUNT",
+   "start": 318,
+   "end": 328
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

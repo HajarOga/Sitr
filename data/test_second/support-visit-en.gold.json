@@ -1,0 +1,33 @@
+{
+ "document_id": "support-visit-en",
+ "receiver": "CUSTOMER_SUPPORT",
+ "language": "en",
+ "source": "written by hand for scripts/make_second_test_set.py - synthetic, no real data, and in prose rather than labelled lines",
+ "spans": [
+  {
+   "text": "Maha Saleh Al-Dosari",
+   "type": "PERSON_NAME",
+   "start": 41,
+   "end": 61
+  },
+  {
+   "text": "0567331188",
+   "type": "PHONE",
+   "start": 87,
+   "end": 97
+  },
+  {
+   "text": "maha.dosari@example.com",
+   "type": "EMAIL",
+   "start": 105,
+   "end": 128
+  },
+  {
+   "text": "Al Sahafah district, Building 7, Office 302",
+   "type": "ADDRESS",
+   "start": 144,
+   "end": 187
+  }
+ ],
+ "note": "The expected action for each value is derived from app/rules/rules.json at scoring time, not written here. This document belongs to no existing set and was written in a different style from the generator's output."
+}

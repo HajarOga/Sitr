@@ -1,0 +1,40 @@
+{
+  "document_id": "HJ-M12",
+  "receiver": "INTERNAL_HR",
+  "language": "ar",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "راشد ناصر القحطاني",
+      "type": "PERSON_NAME",
+      "start": 23,
+      "end": 41
+    },
+    {
+      "text": "EMP-73518",
+      "type": "EMPLOYEE_ID",
+      "start": 57,
+      "end": 66
+    },
+    {
+      "text": "1990-04-17",
+      "type": "DATE_OF_BIRTH",
+      "start": 107,
+      "end": 117
+    },
+    {
+      "text": "1045682391",
+      "type": "NATIONAL_ID",
+      "start": 139,
+      "end": 149
+    },
+    {
+      "text": "0507318642",
+      "type": "PHONE",
+      "start": 171,
+      "end": 181
+    }
+  ],
+  "difficulty": "medium",
+  "difficulty_rationale": "5 values; Arabic HR memo with employee ID, DOB, national ID, and phone."
+}

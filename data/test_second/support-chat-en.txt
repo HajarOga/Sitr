@@ -1,0 +1,7 @@
+Support chat transcript
+
+Customer: I still have not received the replacement part for my air conditioning unit.
+Agent: I can see your order, and the technician visit is already booked.
+Customer: Please call me on 0534778899 instead of my office line.
+Customer: The account is under my name, Turki Bander Al-Shammari, customer number CUST-905517.
+Agent: Noted. I have updated the callback number and left a note for the technician.

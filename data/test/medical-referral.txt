@@ -1,0 +1,10 @@
+Medical Referral Note
+Reference: MEDICAL-REFERRAL-2026-009
+Patient name: Reem Fahad Al-Dosari
+National ID: 1045837299
+Mobile: 0551234567
+Date of birth: 22/11/1979
+Address: Al Narjis district, Street 12, Villa 34
+Referred for a physiotherapy assessment after a workplace injury.
+Light duties recommended for four weeks.
+Subtotal: 980.00 SAR

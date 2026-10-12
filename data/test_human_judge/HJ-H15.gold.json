@@ -1,0 +1,40 @@
+{
+  "document_id": "HJ-H15",
+  "receiver": "EXTERNAL_VENDOR",
+  "language": "ar",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "حي النخيل، شارع 8، مبنى 31",
+      "type": "ADDRESS",
+      "start": 38,
+      "end": 64
+    },
+    {
+      "text": "سلوى ناصر الحربي",
+      "type": "PERSON_NAME",
+      "start": 78,
+      "end": 94
+    },
+    {
+      "text": "0538124097",
+      "type": "PHONE",
+      "start": 103,
+      "end": 113
+    },
+    {
+      "text": "salwa.h@example.test",
+      "type": "EMAIL",
+      "start": 122,
+      "end": 142
+    },
+    {
+      "text": "SA19 4500 0000 7831 6204 1187",
+      "type": "IBAN",
+      "start": 174,
+      "end": 203
+    }
+  ],
+  "difficulty": "hard",
+  "difficulty_rationale": "5 values; Arabic request includes address, contact details, and IBAN."
+}

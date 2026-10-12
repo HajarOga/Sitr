@@ -1,0 +1,28 @@
+{
+  "document_id": "HJ-E04",
+  "receiver": "ANALYST",
+  "language": "en",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "Reem Nabil Al-Qahtani",
+      "type": "PERSON_NAME",
+      "start": 78,
+      "end": 99
+    },
+    {
+      "text": "reem.n@example.test",
+      "type": "EMAIL",
+      "start": 107,
+      "end": 126
+    },
+    {
+      "text": "+966 54 211 9088",
+      "type": "PHONE",
+      "start": 148,
+      "end": 164
+    }
+  ],
+  "difficulty": "easy",
+  "difficulty_rationale": "3 values; English summary with contact details embedded in prose."
+}

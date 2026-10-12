@@ -1,0 +1,12 @@
+خطاب إلى مورد - Letter to a supplier
+Reference: SUPPLIER-2026-123
+السادة: شركة النماذج للتوريدات
+المرجع: SUP-2026-902
+اسم الممثل: منى راشد الخالدي
+Contact person: Mona Rashid Al-Khalidi
+Mobile: 0567788990
+البريد الإلكتروني: l.ghamdi@example.com
+IBAN: SA12 8000 0000 6080 1016 4560
+Subject: renewing the supply contract for 12 months
+Payment terms: 45 days from invoice date
+Subtotal: 1,900.00 SAR

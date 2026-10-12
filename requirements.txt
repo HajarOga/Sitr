@@ -1,0 +1,49 @@
+# SafeShare2 - dependencies
+#
+# The model is mandatory in this build, so torch/transformers are core dependencies here
+# (in the first prototype they were optional extras).
+#
+#   app        the pipeline, the dashboard, the API, the audit log
+#   model      Qwen2.5-3B-Instruct - the *local* provider. Installed separately with
+#              `python -m scripts.setup_model` (the weights are ~6 GB and are not in git).
+#              With SAFESHARE2_PROVIDER=api these libraries are never imported: the model
+#              is called over HTTP with httpx instead.
+#   policy     Chroma plus a multilingual embedding model - the policy index behind the
+#              Policy page's questions and rule editing. Also installed by
+#              `python -m scripts.setup_model` (the embedder, ~470 MB).
+#   documents  PDF reading, DOCX reading/writing, the audit table in the dashboard
+#
+# These are the versions this build was run and tested against (Python 3.13, macOS
+# arm64). They are pinned exactly because they work together: pip cannot resolve
+# transformers 5.x against torch 2.10, which is why the two move as a pair. If you change
+# one, run the test suite and `python -m scripts.smoke_test` before you keep it.
+#
+# After your own successful install, `pip freeze > requirements.lock.txt` and keep that
+# next to this file - that is the exact environment you demonstrated.
+
+# ------------------------------------------------------------------------------ app
+streamlit==1.65.0
+fastapi==0.143.0
+uvicorn==0.54.0
+httpx==0.28.1              # the hosted model API + the API test client
+pandas==3.0.6              # the audit/decision tables in the dashboard
+plotly>=5.18,<7             # interactive, locally rendered dashboard charts
+openpyxl>=3.1,<4            # formatted Excel evaluation reports
+
+# ------------------------------------------------------------------------ documents
+python-docx==1.2.0         # read and write DOCX, keeping tables and headings
+PyMuPDF==1.28.2            # read text out of PDFs (fitz)
+
+# -------------------------------------------------------------------- policy (RAG)
+chromadb==1.5.9            # the policy index: local, persistent, in data/index/
+sentence-transformers==6.1.0   # the multilingual embedder, run locally
+
+# ---------------------------------------------------------------------------- model
+# The local provider only (SAFESHARE2_PROVIDER=local). Installed by
+# `python -m scripts.setup_model`; these are the libraries that run it.
+torch==2.14.1
+transformers==5.19.0
+huggingface_hub==1.33.0
+accelerate==1.9.0          # only used to place the model on a GPU automatically
+peft==0.21.1               # loading the trained LoRA adapter
+bitsandbytes==0.50.2       # NF4 CUDA loading on GPUs with limited VRAM

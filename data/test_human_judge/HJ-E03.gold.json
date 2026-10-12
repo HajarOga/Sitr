@@ -1,0 +1,22 @@
+{
+  "document_id": "HJ-E03",
+  "receiver": "ANALYST",
+  "language": "en",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "Omar Khalid Al-Salem",
+      "type": "PERSON_NAME",
+      "start": 101,
+      "end": 121
+    },
+    {
+      "text": "CUST-492681",
+      "type": "CUSTOMER_ID",
+      "start": 135,
+      "end": 146
+    }
+  ],
+  "difficulty": "easy",
+  "difficulty_rationale": "2 values; short English summary; name and customer ID are explicit."
+}
