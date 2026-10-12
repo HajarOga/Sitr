@@ -1,0 +1,40 @@
+{
+  "document_id": "HJ-M13",
+  "receiver": "EXTERNAL_VENDOR",
+  "language": "en",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "Majed Turki Al-Harbi",
+      "type": "PERSON_NAME",
+      "start": 50,
+      "end": 70
+    },
+    {
+      "text": "+966 55 640 2187",
+      "type": "PHONE",
+      "start": 79,
+      "end": 95
+    },
+    {
+      "text": "generator@example.test",
+      "type": "EMAIL",
+      "start": 124,
+      "end": 146
+    },
+    {
+      "text": "310842670000003",
+      "type": "COMPANY_IDENTIFIER",
+      "start": 177,
+      "end": 192
+    },
+    {
+      "text": "1015826407",
+      "type": "COMPANY_IDENTIFIER",
+      "start": 217,
+      "end": 227
+    }
+  ],
+  "difficulty": "medium",
+  "difficulty_rationale": "5 values; English vendor email with phone format and two company identifiers."
+}

@@ -1,0 +1,3 @@
+Employee departure checklist
+
+Employee: Rawan Majed Al-Salem. Employee ID EMP-64821. Personal email rawan.s@example.test and mobile 0556041982. Home address: Al Wurud district, Street 6, Building 18. Date of birth: 1988-09-14.

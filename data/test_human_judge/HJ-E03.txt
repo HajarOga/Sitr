@@ -1,0 +1,3 @@
+Monthly service overview
+
+Ticket volume increased by 8% in May. The largest contributor was customer Omar Khalid Al-Salem (customer ID CUST-492681), who reported five recurring issues.

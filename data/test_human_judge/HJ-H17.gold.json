@@ -1,0 +1,46 @@
+{
+  "document_id": "HJ-H17",
+  "receiver": "INTERNAL_HR",
+  "language": "en",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "Rawan Majed Al-Salem",
+      "type": "PERSON_NAME",
+      "start": 40,
+      "end": 60
+    },
+    {
+      "text": "EMP-64821",
+      "type": "EMPLOYEE_ID",
+      "start": 74,
+      "end": 83
+    },
+    {
+      "text": "rawan.s@example.test",
+      "type": "EMAIL",
+      "start": 100,
+      "end": 120
+    },
+    {
+      "text": "0556041982",
+      "type": "PHONE",
+      "start": 132,
+      "end": 142
+    },
+    {
+      "text": "Al Wurud district, Street 6, Building 18",
+      "type": "ADDRESS",
+      "start": 158,
+      "end": 198
+    },
+    {
+      "text": "1988-09-14",
+      "type": "DATE_OF_BIRTH",
+      "start": 215,
+      "end": 225
+    }
+  ],
+  "difficulty": "hard",
+  "difficulty_rationale": "6 values; English HR exit checklist with address, date of birth, employee ID, contacts."
+}

@@ -1,0 +1,58 @@
+{
+  "document_id": "HJ-H18",
+  "receiver": "INTERNAL_HR",
+  "language": "en",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "Dana Sami Al-Mutairi",
+      "type": "PERSON_NAME",
+      "start": 41,
+      "end": 61
+    },
+    {
+      "text": "EMP-82741",
+      "type": "EMPLOYEE_ID",
+      "start": 107,
+      "end": 116
+    },
+    {
+      "text": "1064328791",
+      "type": "NATIONAL_ID",
+      "start": 130,
+      "end": 140
+    },
+    {
+      "text": "1992-06-18",
+      "type": "DATE_OF_BIRTH",
+      "start": 156,
+      "end": 166
+    },
+    {
+      "text": "P6842091",
+      "type": "PASSPORT_NUMBER",
+      "start": 184,
+      "end": 192
+    },
+    {
+      "text": "0563098174",
+      "type": "PHONE",
+      "start": 210,
+      "end": 220
+    },
+    {
+      "text": "Al Rabwah district, Street 11, Building 27",
+      "type": "ADDRESS",
+      "start": 235,
+      "end": 277
+    },
+    {
+      "text": "4817206395",
+      "type": "BANK_ACCOUNT",
+      "start": 295,
+      "end": 305
+    }
+  ],
+  "difficulty": "hard",
+  "difficulty_rationale": "8 values; HR onboarding with national ID, passport, DOB, bank account, address."
+}

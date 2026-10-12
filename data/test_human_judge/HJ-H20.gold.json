@@ -1,0 +1,46 @@
+{
+  "document_id": "HJ-H20",
+  "receiver": "INTERNAL_HR",
+  "language": "ar",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "ناصر عبدالله المطيري",
+      "type": "PERSON_NAME",
+      "start": 39,
+      "end": 59
+    },
+    {
+      "text": "EMP-70482",
+      "type": "EMPLOYEE_ID",
+      "start": 75,
+      "end": 84
+    },
+    {
+      "text": "1039284756",
+      "type": "NATIONAL_ID",
+      "start": 113,
+      "end": 123
+    },
+    {
+      "text": "N5842163",
+      "type": "PASSPORT_NUMBER",
+      "start": 144,
+      "end": 152
+    },
+    {
+      "text": "1994-02-26",
+      "type": "DATE_OF_BIRTH",
+      "start": 168,
+      "end": 178
+    },
+    {
+      "text": "0557291840",
+      "type": "PHONE",
+      "start": 188,
+      "end": 198
+    }
+  ],
+  "difficulty": "hard",
+  "difficulty_rationale": "6 values; Arabic HR note with national ID, passport, DOB, employee ID, phone."
+}

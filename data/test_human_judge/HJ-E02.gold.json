@@ -1,0 +1,22 @@
+{
+  "document_id": "HJ-E02",
+  "receiver": "ANALYST",
+  "language": "ar",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "منال تركي الحربي",
+      "type": "PERSON_NAME",
+      "start": 68,
+      "end": 84
+    },
+    {
+      "text": "CUST-719305",
+      "type": "CUSTOMER_ID",
+      "start": 97,
+      "end": 108
+    }
+  ],
+  "difficulty": "easy",
+  "difficulty_rationale": "2 values; short Arabic internal note; name and customer ID are explicit."
+}

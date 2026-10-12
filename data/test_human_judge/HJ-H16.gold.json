@@ -1,0 +1,40 @@
+{
+  "document_id": "HJ-H16",
+  "receiver": "EXTERNAL_VENDOR",
+  "language": "en",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "Faisal Nabil Al-Otaibi",
+      "type": "PERSON_NAME",
+      "start": 93,
+      "end": 115
+    },
+    {
+      "text": "+966 54 822 6710",
+      "type": "PHONE",
+      "start": 124,
+      "end": 140
+    },
+    {
+      "text": "safety@example.test",
+      "type": "EMAIL",
+      "start": 148,
+      "end": 167
+    },
+    {
+      "text": "5831047296",
+      "type": "BANK_ACCOUNT",
+      "start": 201,
+      "end": 211
+    },
+    {
+      "text": "310739150000003",
+      "type": "COMPANY_IDENTIFIER",
+      "start": 227,
+      "end": 242
+    }
+  ],
+  "difficulty": "hard",
+  "difficulty_rationale": "5 values; English vendor context includes bank account and VAT/company identifier."
+}

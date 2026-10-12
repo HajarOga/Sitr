@@ -1,0 +1,22 @@
+{
+  "document_id": "HJ-E01",
+  "receiver": "ANALYST",
+  "language": "ar",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "فهد راشد السبيعي",
+      "type": "PERSON_NAME",
+      "start": 83,
+      "end": 99
+    },
+    {
+      "text": "CUST-620418",
+      "type": "CUSTOMER_ID",
+      "start": 112,
+      "end": 123
+    }
+  ],
+  "difficulty": "easy",
+  "difficulty_rationale": "2 values; short Arabic analyst summary; name and customer ID are explicit."
+}

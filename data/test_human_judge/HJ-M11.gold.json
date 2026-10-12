@@ -1,0 +1,40 @@
+{
+  "document_id": "HJ-M11",
+  "receiver": "EXTERNAL_VENDOR",
+  "language": "ar",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "مها عبدالله السبيعي",
+      "type": "PERSON_NAME",
+      "start": 39,
+      "end": 58
+    },
+    {
+      "text": "0567102489",
+      "type": "PHONE",
+      "start": 67,
+      "end": 77
+    },
+    {
+      "text": "m.alabdullah@example.test",
+      "type": "EMAIL",
+      "start": 87,
+      "end": 112
+    },
+    {
+      "text": "حي الياسمين، شارع 12، مبنى 9",
+      "type": "ADDRESS",
+      "start": 127,
+      "end": 155
+    },
+    {
+      "text": "310624890000003",
+      "type": "COMPANY_IDENTIFIER",
+      "start": 182,
+      "end": 197
+    }
+  ],
+  "difficulty": "medium",
+  "difficulty_rationale": "5 values; Arabic vendor request with address and company identifier."
+}

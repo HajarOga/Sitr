@@ -1,0 +1,34 @@
+{
+  "document_id": "HJ-M09",
+  "receiver": "CUSTOMER_SUPPORT",
+  "language": "en",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "Lujain Saleh Al-Mutairi",
+      "type": "PERSON_NAME",
+      "start": 47,
+      "end": 70
+    },
+    {
+      "text": "0562087413",
+      "type": "PHONE",
+      "start": 82,
+      "end": 92
+    },
+    {
+      "text": "lujain.s@example.test",
+      "type": "EMAIL",
+      "start": 101,
+      "end": 122
+    },
+    {
+      "text": "Al Narjis district, Building 14, Office 205",
+      "type": "ADDRESS",
+      "start": 147,
+      "end": 190
+    }
+  ],
+  "difficulty": "medium",
+  "difficulty_rationale": "4 values; English visit note includes an address as a longer span."
+}

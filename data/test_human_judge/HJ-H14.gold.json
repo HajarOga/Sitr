@@ -1,0 +1,40 @@
+{
+  "document_id": "HJ-H14",
+  "receiver": "CUSTOMER_SUPPORT",
+  "language": "ar",
+  "source": "new synthetic document authored for the user's independent Human Judge set; not copied verbatim from the uploaded set",
+  "spans": [
+    {
+      "text": "بدر صالح الغامدي",
+      "type": "PERSON_NAME",
+      "start": 38,
+      "end": 54
+    },
+    {
+      "text": "CUST-641820",
+      "type": "CUSTOMER_ID",
+      "start": 94,
+      "end": 105
+    },
+    {
+      "text": "0554198720",
+      "type": "PHONE",
+      "start": 115,
+      "end": 125
+    },
+    {
+      "text": "بدر.g@example.test",
+      "type": "EMAIL",
+      "start": 135,
+      "end": 153
+    },
+    {
+      "text": "1072468135",
+      "type": "NATIONAL_ID",
+      "start": 183,
+      "end": 193
+    }
+  ],
+  "difficulty": "hard",
+  "difficulty_rationale": "5 values; Arabic refund context includes national ID, customer ID, contact details."
+}
