@@ -353,6 +353,47 @@ automatically (`cuda` in bfloat16 or float16 instead of `mps` in float16).
 - Code was written with an AI assistant (Hermes Agent) and reviewed, run and tested by the
   team. AI use is disclosed, as the project brief requires.
 
+## Results
+
+Measured on the frozen 12-document test set in `data/test/` — documents the model was never
+trained on. 49 values had to be removed or replaced.
+
+| metric | base model | + LoRA | + LoRA + DPO |
+|---|---|---|---|
+| structured output | 88.3% | 100.0% | 100.0% |
+| citation validity | 96.7% | 100.0% | 100.0% |
+| action agreement | 92.0% | 100.0% | 98.5% |
+| finding recall | 71.4% | 97.1% | 94.3% |
+| **leak rate** | **34.7%** | **2.0%** | **4.1%** |
+
+Policy retrieval, asked one question per rule (48 questions, filtered to the receiver):
+**recall@1 91.7%, recall@3 100%**. Per-document latency on a Colab T4: p95 **66 s** with the
+LoRA adapter.
+
+On `data/test_no_rules`, where the receiver has no policy and the only correct answer is
+ASK_HUMAN: the base model leaked 100% of the values; both adapted models leaked **0%** and
+deferred **100%** to a person.
+
+The full method, and the caveats worth reading, are in `docs/MODEL_ADAPTATION.md`.
+
+## Data sources and licences
+
+| source | what it gives us | licence |
+|---|---|---|
+| our own 24 synthetic documents (`training/make_training_documents.py`) | the per-receiver decisions — the part no public dataset has | authored by the team, synthetic |
+| `gretelai/gretel-pii-masking-en-v1` | English PII spans, for detection | Apache-2.0 |
+| `mabahboh/sitr-arabic-pii` | Arabic and English PII spans | Apache-2.0 |
+| `Qwen/Qwen2.5-3B-Instruct` | the pre-trained base model | Apache-2.0 |
+
+Checked and **not** used: `aniket-curlscape/pii-masking-english-1k` (licence "other") and
+`ai4privacy/*` (custom two-tier licence, not open source). The rule library in
+`app/rules/rules.json` was written by the team.
+
+## Team
+
+SafeShare capstone — Tuwaiq Academy, Generative AI Application Engineering bootcamp,
+October 2026: **Amal · Hajar · Ruba · Sana**.
+
 ## Licence
 
 MIT — see `LICENSE`. The model is Apache-2.0 (`Qwen/Qwen2.5-3B-Instruct`); it is downloaded
