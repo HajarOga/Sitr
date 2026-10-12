@@ -554,7 +554,9 @@ def generate_json(messages: list[dict], *, purpose: str = "json",
             meta["parsed"] = True
             meta["raw"] = text[:2000]
             meta["retries"] = attempt
-            meta["total_seconds"] = round(time.perf_counter() - started, 2)
+            meta["total_seconds"] = max(
+                round(time.perf_counter() - started, 4),
+                meta["json_validation_seconds"])
             return payload, meta
         if attempt < retries:
             conversation = conversation + [
@@ -563,5 +565,7 @@ def generate_json(messages: list[dict], *, purpose: str = "json",
             ]
     meta["retries"] = max(0, meta["attempts"] - 1)
     meta["raw"] = text[:2000]
-    meta["total_seconds"] = round(time.perf_counter() - started, 2)
+    meta["total_seconds"] = max(
+        round(time.perf_counter() - started, 4),
+        meta["json_validation_seconds"])
     return None, meta
