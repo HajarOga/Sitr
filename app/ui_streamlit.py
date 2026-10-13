@@ -26,6 +26,7 @@ Two behaviours are deliberate and worth knowing when you read this file:
 from __future__ import annotations
 
 import html
+import re
 import sys
 from pathlib import Path
 
@@ -42,6 +43,7 @@ from app.document_processing.writers import safe_text, write_release  # noqa: E4
 from app.llm import engine                                  # noqa: E402
 from app.pii_detection.schema import Action, PiiType        # noqa: E402
 from app.policy import qa as policy_qa                      # noqa: E402
+from app.policy import document_qa                         # noqa: E402
 from app.policy.policy_editor import PolicyEditError, PolicyEditor  # noqa: E402
 from app.policy.policy_index import PolicyIndexError, get_index  # noqa: E402
 from app.review.review_queue import apply_review, build_queue, review_state  # noqa: E402
@@ -159,6 +161,42 @@ def badge(text: str, action: str) -> str:
     colour, background, _ = ACTION_STYLE.get(action, ACTION_STYLE["KEEP"])
     return (f"<span style='background:{background};color:{colour};padding:2px 8px;"
             f"border-radius:10px;font-size:0.78rem;font-weight:600'>{html.escape(text)}</span>")
+
+
+_ARABIC_LETTER = re.compile(r"[\u0600-\u06FF]")
+_LATIN_LETTER = re.compile(r"[A-Za-z]")
+_RULE_ID = re.compile(r"\b[A-Z]{2,}(?:-[A-Z0-9]+)+\b")           # VENDOR-PII-002
+
+
+def _line_html(line: str) -> str:
+    """One line of model text, with the direction that line actually has."""
+    letters = _RULE_ID.sub("", line)
+    rtl = len(_ARABIC_LETTER.findall(letters)) > len(_LATIN_LETTER.findall(letters))
+    body = html.escape(line)
+    body = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", body)
+    body = _RULE_ID.sub(lambda m: f"<bdi dir='ltr'>{m.group(0)}</bdi>", body)
+    return (f"<div dir='{'rtl' if rtl else 'ltr'}' style='text-align:"
+            f"{'right' if rtl else 'left'};line-height:1.9;margin:0 0 0.25rem 0'>{body}</div>")
+
+
+def bidi_html(text: str) -> str:
+    """Model text as HTML that reads in the right order, Arabic or English or both.
+
+    Streamlit lays markdown out left-to-right. An Arabic answer with a Latin rule id inside
+    it - "... (VENDOR-PII-002). ..." - is then reordered by the browser's bidirectional
+    algorithm and the sentences come out jumbled. The fix is to give each line its real
+    direction (right-to-left when it is mostly Arabic) and to keep every rule id as one
+    left-to-right unit, so the punctuation around it stays where the sentence put it. The
+    direction is decided per line, so an English line under an Arabic one is not flipped.
+    The text is escaped first, so nothing the model writes can inject markup.
+    """
+    return "".join(_line_html(line) if line.strip() else "<div style='height:0.5rem'></div>"
+                   for line in (text or "").splitlines())
+
+
+def show_text(text: str) -> None:
+    """Show model-written text with the right reading direction."""
+    st.markdown(bidi_html(text), unsafe_allow_html=True)
 
 
 # ------------------------------------------------------------------ page 1: upload
@@ -507,14 +545,16 @@ def page_policy() -> None:
             f"release pipeline is unaffected.")
         st.code("python -m scripts.setup_model", language="bash")
 
-    tab_ask, tab_rules, tab_history = st.tabs(["Ask the policy", "Browse and edit",
-                                               "Change history"])
+    tab_ask, tab_rules, tab_history, tab_document = st.tabs(
+        ["Ask the policy", "Browse and edit", "Change history", "Released document"])
     with tab_ask:
         policy_ask_tab(lib, status)
     with tab_rules:
         policy_rules_tab(lib, editor)
     with tab_history:
         policy_history_tab(editor)
+    with tab_document:
+        policy_document_tab()
 
 
 def policy_ask_tab(lib, status: dict) -> None:
@@ -565,7 +605,7 @@ def policy_ask_tab(lib, status: dict) -> None:
 
     if result.get("answer"):
         st.markdown("**Answer**")
-        st.markdown(result["answer"])
+        show_text(result["answer"])
         if result.get("cited"):
             st.caption("Verified citations: " + ", ".join(f"`{rule_id}`"
                                                           for rule_id in result["cited"]))
@@ -769,6 +809,72 @@ def policy_history_tab(editor: PolicyEditor) -> None:
     with right:
         st.markdown("**After**")
         st.json(row.get("after") or {})
+
+
+def policy_document_tab() -> None:
+    """Summarise, or ask questions about, the document that was just released.
+
+    It reads the released text only (the same string "Safe version as text" shows on the
+    Review page), never the original. It cannot change a decision or the release.
+    """
+    analysis = st.session_state.get("analysis")
+    last = st.session_state.get("last")
+    if analysis is None or not last:
+        st.info("Generate a release on the Review page first. This tab then summarises it "
+                "or answers questions about it.")
+        return
+
+    st.subheader("🤖 Safe Document RAG Assistant")
+    released = safe_text(analysis.document, last["applied"]["changed"])
+    run_id = last["run_id"]
+    if st.session_state.get("doc_qa_run") != run_id:       # a new release: a new conversation
+        st.session_state["doc_qa_run"] = run_id
+        st.session_state["doc_qa_history"] = []
+    history: list[dict] = st.session_state["doc_qa_history"]
+
+    st.caption(f"{analysis.document.filename} - release {run_id} - {len(released):,} "
+               f"characters. The model sees the released text only, never the original.")
+    if config.resolve_provider() == "api":
+        st.caption(f"The hosted model is used, so this released text is sent to "
+                   f"`{config.API_BASE_URL}` in the prompt.")
+    if last["applied"]["incomplete"]:
+        st.warning(f"{len(last['applied']['pending'])} item(s) were still undecided and are "
+                   f"not in this document, so answers may be missing them.")
+
+    ready = engine.status().get("installed", False)
+    if not ready:
+        st.info("The model is not configured, so questions are unavailable.")
+
+    question = st.text_input("Ask about the document", key="doc_qa_question",
+                             placeholder="Who signed the agreement? / من الطرف الثاني في العقد؟")
+    ask_col, sum_col, clear_col = st.columns([1, 1, 3])
+    ask = ask_col.button("Ask", type="primary", key="doc_qa_ask",
+                         disabled=not (ready and question.strip()))
+    summarize = sum_col.button("Summarize", key="doc_qa_summarize", disabled=not ready)
+    if clear_col.button("Clear conversation", key="doc_qa_clear", disabled=not history):
+        history.clear()
+        st.rerun()
+
+    if ask or summarize:
+        with st.spinner("The model is reading the released document..."):
+            try:
+                history.append(document_qa.summarize(released) if summarize
+                               else document_qa.ask(released, question))
+            except document_qa.DocumentQAError as exc:
+                st.error(str(exc))
+            except engine.ModelNotInstalled as exc:
+                st.error(str(exc))
+            except Exception as exc:                                   # noqa: BLE001
+                st.error(f"The model did not produce a usable answer: {exc}")
+
+    for entry in reversed(history):
+        with st.container(border=True):
+            st.markdown("**Summary**" if entry["kind"] == "summary"
+                        else f"**Q:** {entry['question']}")
+            show_text(entry["answer"])
+            for note in entry["notes"]:
+                st.caption(note)
+            st.caption(f"{entry['model']} - {entry['seconds']}s")
 
 
 # --------------------------------------------------------------------------- main
