@@ -89,7 +89,7 @@ way out; everything here is synthetic and has never been run against a real comp
 document.
 
 
-### Note: SafeShare Model Inference Performance
+### Note: Sitr model inference performance
 
 Performance profiling identified **LLM token generation as the primary bottleneck** when running our fine-tuned Qwen2.5-3B-Instruct LoRA model on the NVIDIA RTX 5060 Laptop GPU (8 GB VRAM).
 

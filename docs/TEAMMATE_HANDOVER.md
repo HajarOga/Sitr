@@ -1,6 +1,6 @@
-# SafeShare — handover for the teammate with the GPU
+# سِتر (Sitr) — handover for the teammate with the GPU
 
-You're setting up **SafeShare**, our capstone app: it reads a document, finds the personal
+You're setting up **سِتر (Sitr)** — formerly SafeShare — our capstone app: it reads a document, finds the personal
 data in it, and decides — per receiver — what is kept, replaced, removed, or asked about by a
 human, citing the rule it applied. The decision model is Qwen2.5-3B-Instruct, adapted with
 LoRA (supervised fine-tuning) and DPO (preference alignment).

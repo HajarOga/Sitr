@@ -1,6 +1,9 @@
-# SafeShare
+# سِتر · Sitr
 
-SafeShare analyses a document for personal information, applies receiver-specific
+> Formerly **SafeShare** — the name used in earlier submissions. The repository slug is
+> unchanged so existing links keep working.
+
+Sitr analyses a document for personal information, applies receiver-specific
 policy, and prepares a safer version for review and release. Rules and code enforce
 the release contract; the model proposes findings and actions.
 
@@ -11,6 +14,9 @@ the release contract; the model proposes findings and actions.
   API key for hosted inference.
 - A CUDA-compatible NVIDIA GPU is optional for local inference. CPU and Apple
   Silicon (`mps`) are also supported by the model engine when available.
+- `requirements.txt` also installs what the evaluation reports and the adapter path
+  need: `openpyxl` (Excel reports), `plotly` (charts), `peft` (loading a LoRA adapter),
+  and the pinned `bitsandbytes` (4-bit CUDA loading).
 
 The application uses Streamlit. The optional HTTP API uses FastAPI and Uvicorn.
 Document support includes TXT, Markdown, DOCX, and PDF input; releases are written as
@@ -106,7 +112,7 @@ Install a PyTorch build compatible with the project pin, Python version, and ins
 NVIDIA driver if CUDA is not available. The full-report evaluator intentionally refuses
 CPU inference or an unconfirmed model/adapter configuration.
 
-## Run SafeShare
+## Run Sitr
 
 Launch the Streamlit application from the project root:
 
@@ -115,7 +121,8 @@ streamlit run app/ui_streamlit.py
 ```
 
 The dashboard provides Upload, Review, Audit log, and Policy pages. Analysis runs only
-after the user starts it. Progress and timing information reflect actual pipeline stages
+after the user starts it. The Policy page also answers Arabic and English questions from
+the retrieved rules, and shows the rule each answer is grounded in. Progress and timing information reflect actual pipeline stages
 and completed document chunks.
 
 The optional HTTP API is:
@@ -133,6 +140,9 @@ Run the complete test suite:
 ```bash
 python -m pytest -q
 ```
+
+The suite currently holds **66 tests** — 62 for the pipeline, policy and guards, and 4 for
+the evaluation reports.
 
 The smoke test exercises the model-backed analysis path when the configured model is
 available:
@@ -176,6 +186,10 @@ For the Human Judge dataset, direct output to `testing/`:
 python -m evaluation.full_report --test-dir data/test_human_judge --output-dir testing --dataset-name test_human_judge --expected-documents 20 --expected-labels 87
 ```
 
+A validated run from this evaluator is committed under `evaluation/results/` as a
+timestamped predictions file and Excel workbook, so the published numbers can be
+re-derived without a GPU.
+
 The detailed report runner requires the local Qwen2.5-3B-Instruct model, a configured
 LoRA adapter, CUDA, BF16 support, and the validated 4-bit load. It checks these
 requirements before counting a run as valid. Failed documents are reported separately
@@ -210,6 +224,7 @@ labels remain project files and are not changed by evaluation.
 - Policy rules are validated in code. Invalid findings or unresolved human-review
   decisions are not silently treated as safe releases.
 
+For the demo script and the questions to expect, see [docs/DEMO.md](docs/DEMO.md).
 For implementation details, see [docs/PIPELINE.md](docs/PIPELINE.md),
 [docs/AI.md](docs/AI.md), [docs/SETUP.md](docs/SETUP.md), and
 [training/COLAB.md](training/COLAB.md).
@@ -248,8 +263,8 @@ library in `app/rules/rules.json` is team-authored.
 
 ## Team
 
-SafeShare capstone — Tuwaiq Academy, Generative AI Application Engineering bootcamp,
-October 2026: **Amal · Hajar · Ruba · Sana**.
+سِتر (Sitr) capstone — formerly SafeShare — Tuwaiq Academy, Generative AI Application
+Engineering bootcamp, October 2026: **Amal · Hajar · Ruba · Sana**.
 
 The project was developed with AI assistance and reviewed and tested by the team.
 

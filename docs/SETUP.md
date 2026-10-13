@@ -1,4 +1,4 @@
-# Setting SafeShare up
+# Setting سِتر (Sitr) up
 
 Two audiences: the machine you are on now, and a fresh machine (or a GPU box) where this
 is cloned from GitHub. The steps are the same; the notes underneath explain the choices.
@@ -164,7 +164,7 @@ python -m scripts.setup_model --json
 machine-specific paths in code.
 
 ```bash
-git add . && git commit -m "SafeShare: purpose-bound release with a local model at the core"
+git add . && git commit -m "Sitr: purpose-bound release with a local model at the core"
 git remote add origin git@github.com:<account>/safeshare2.git
 git push -u origin main
 ```

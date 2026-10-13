@@ -1,4 +1,4 @@
-# The AI in SafeShare
+# The AI in سِتر (Sitr)
 
 Everything in this file answers one question: **what is the model actually doing here?**
 

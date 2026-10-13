@@ -187,3 +187,27 @@ behaviour unchanged.
   and no answer at all is scored as a leak rather than raising.
 - Both fixes came out of the first real model run, which is the argument for running the
   baseline before trusting any of it.
+
+## Rename to سِتر (Sitr), the validated GPU report, and the merged team state
+
+**Changed**
+
+- The product is presented as **سِتر · Sitr** (formerly SafeShare) in the UI brand, the
+  page title, and exported filenames. The repository slug is unchanged so earlier links,
+  scripts, and datasets keep working.
+- Policy document Q&A (`app/policy/document_qa.py`): the Policy page answers Arabic and
+  English questions from the retrieved rules and shows the rule each answer cites.
+- `evaluation/full_report.py` runs the second set (20 documents / 87 labels) on the local
+  Qwen model with a LoRA adapter on CUDA/BF16/4-bit, and writes a timestamped JSONL plus a
+  five-sheet Excel workbook to `evaluation/results/`.
+- `evaluation/evaluate_rag.py` adds the retrieval-only policy benchmark, and
+  `tests/test_evaluation_report.py` covers the report builder.
+
+**Verified**
+
+- 66 tests pass (62 pipeline, policy and guards; 4 evaluation report).
+- The committed second-set artifacts were re-scored from the saved predictions:
+  Precision 93.02%, Recall 91.95%, F1 92.49%, action agreement 100% (80/80),
+  leak rate 2.86% (1 of 35 protected values), deferred 0%, structured output 98.85%,
+  citation validity 97.44% — Qwen2.5-3B-Instruct + LoRA, local, BF16 CUDA.
+
