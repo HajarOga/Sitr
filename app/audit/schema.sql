@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS runs (
     model       TEXT,
     model_seconds REAL DEFAULT 0,
     model_calls INTEGER DEFAULT 0,
+    processing_seconds REAL DEFAULT 0,
+    model_load_seconds REAL DEFAULT 0,
+    json_validation_seconds REAL DEFAULT 0,
     ai_summary  TEXT
 );
 
@@ -63,8 +66,15 @@ CREATE TABLE IF NOT EXISTS model_calls (
     purpose     TEXT NOT NULL,
     model       TEXT NOT NULL,
     device      TEXT,
+    tokens_in   INTEGER,
     tokens_out  INTEGER,
+    tokens_per_second REAL,
+    prompt_chars INTEGER,
+    output_chars INTEGER,
     seconds     REAL,
+    json_attempt INTEGER,
+    json_valid  INTEGER,
+    json_validation_seconds REAL DEFAULT 0,
     prompt_sha  TEXT,
     FOREIGN KEY (run_id) REFERENCES runs (run_id)
 );

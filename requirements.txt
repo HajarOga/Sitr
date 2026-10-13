@@ -27,6 +27,8 @@ fastapi==0.143.0
 uvicorn==0.54.0
 httpx==0.28.1              # the hosted model API + the API test client
 pandas==3.0.6              # the audit/decision tables in the dashboard
+plotly>=5.18,<7             # interactive, locally rendered dashboard charts
+openpyxl>=3.1,<4            # formatted Excel evaluation reports
 
 # ------------------------------------------------------------------------ documents
 python-docx==1.2.0         # read and write DOCX, keeping tables and headings
@@ -43,7 +45,5 @@ torch==2.14.1
 transformers==5.19.0
 huggingface_hub==1.33.0
 accelerate==1.9.0          # only used to place the model on a GPU automatically
-
-# ------------------------------------------------------------------------ optional
-# 4-bit loading, for running the 3B model on a small GPU (nvidia only):
-# bitsandbytes==0.45.0
+peft==0.21.1               # loading the trained LoRA adapter
+bitsandbytes==0.50.2       # NF4 CUDA loading on GPUs with limited VRAM

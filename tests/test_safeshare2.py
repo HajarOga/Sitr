@@ -199,17 +199,54 @@ def test_analyze_uses_a_bare_list_answer_end_to_end():
         engine.ensure_installed = lambda: {"installed": True}
         config.ADJUDICATE = False
         config.SUMMARY = False
+        progress = []
         # a bare list, exactly as the model answered on Colab
         engine.generate_json = lambda *a, **k: ([finding()], {"parsed": True, "attempts": 1})
-        analysis = core.analyze(document(), "EXTERNAL_VENDOR")
+        analysis = core.analyze(document(), "EXTERNAL_VENDOR",
+                                progress_callback=progress.append, include_summary=False)
         assert analysis.detections, "the bare-list answer was thrown away"
         assert analysis.detections[0].original_text == "1045837299"
         assert analysis.detections[0].action == Action.REMOVE.value
+        stages = [event["stage"] for event in progress]
+        assert stages[0] == "prepared" and stages[1] in {"loading_model", "generating"}
+        assert stages[2:] == ["chunk_complete", "guards", "complete"]
+        assert progress[2]["completed_chunks"] == progress[2]["total_chunks"] == 1
+        assert analysis.processing_seconds >= 0
     finally:
         engine.generate_json = original_json
         engine.ensure_installed = original_install
         config.ADJUDICATE, config.SUMMARY = original_adjudicate, original_summary
     return "verified: a bare list becomes a real decision"
+
+
+def test_analysis_keeps_call_telemetry_when_summary_is_enabled():
+    original_json = engine.generate_json
+    original_install = engine.ensure_installed
+    original_adjudicate, original_summary = config.ADJUDICATE, config.SUMMARY
+    original_calls = list(engine._CALLS)
+    try:
+        engine.ensure_installed = lambda: {"installed": True}
+        config.ADJUDICATE = False
+        config.SUMMARY = True
+        engine._CALLS.clear()
+
+        def fake_generate_json(_messages, *, purpose="json", **_kwargs):
+            engine._CALLS.append({"purpose": purpose, "seconds": 0.1, "tokens_out": 2})
+            if purpose == "summary":
+                return {"summary": "brief"}, {"parsed": True}
+            return [finding()], {"parsed": True, "attempts": 1}
+
+        engine.generate_json = fake_generate_json
+        analysis = core.analyze(document(), "EXTERNAL_VENDOR", include_summary=True)
+        assert [call["purpose"] for call in analysis.calls] == [
+            "analyze part 1/1", "summary"]
+        assert analysis.model_generation_seconds == 0.2
+        assert analysis.summary_text == "brief"
+    finally:
+        engine.generate_json = original_json
+        engine.ensure_installed = original_install
+        engine._CALLS[:] = original_calls
+        config.ADJUDICATE, config.SUMMARY = original_adjudicate, original_summary
 
 
 def test_json_with_a_fence_is_parsed():
@@ -304,12 +341,93 @@ def test_the_audit_records_the_model_and_stores_no_value():
         run_id = audit.record_run(analysis, applied, db_path=db)
         calls = audit.model_calls(run_id, db_path=db)
         assert len(calls) == 1 and calls[0]["tokens_out"] == 120, calls
+        assert calls[0]["tokens_in"] is None
         row = audit.runs(limit=1, db_path=db)[0]
         assert row["model_seconds"] == 4.5 and row["model"] == analysis.model, row
+        assert row["processing_seconds"] == 0.0
         assert row["ai_summary"] == "The model removed two identifiers."
         blob = db.read_bytes()
         assert b"1045837299" not in blob, "the audit log stored the original value"
         assert b"a.alharbi@example.test" not in blob
+
+
+def test_the_audit_records_latency_and_token_telemetry():
+    detections, _ = checked([finding()])
+    for index, detection in enumerate(detections):
+        detection.meta["id"] = f"d{index}"
+        detection.meta["masked"] = core.mask_value(detection.original_text)
+        detection.meta["value_hash"] = core.value_hash(detection.original_text)
+    analysis = core.AnalysisResult(
+        document=document(), receiver="EXTERNAL_VENDOR", purpose="test",
+        detections=detections, generator=FakeGenerator(receiver="EXTERNAL_VENDOR"),
+        processing_seconds=8.25, model_load_seconds=2.5, json_validation_seconds=0.001,
+        calls=[{"purpose": "analyze part 1/1", "model": "local-test",
+                "device": "cuda:0", "tokens_in": 512, "tokens_out": 120,
+                "tokens_per_second": 15.0, "prompt_chars": 1024, "output_chars": 220,
+                "seconds": 8.0, "json_attempt": 1, "json_valid": True,
+                "json_validation_seconds": 0.001, "prompt_sha": "abc123"}])
+    applied = core.apply_decisions(analysis)
+
+    with tempfile.TemporaryDirectory() as folder:
+        db = Path(folder) / "audit.sqlite3"
+        run_id = audit.record_run(analysis, applied, db_path=db)
+        run = audit.runs(limit=1, db_path=db)[0]
+        assert run["processing_seconds"] == 8.25
+        assert run["model_load_seconds"] == 2.5
+        assert run["json_validation_seconds"] == 0.001
+        call = audit.model_calls(run_id, db_path=db)[0]
+        assert call["tokens_in"] == 512 and call["tokens_out"] == 120
+        assert call["tokens_per_second"] == 15.0
+        assert call["json_valid"] == 1 and call["json_attempt"] == 1
+        assert call["seconds"] == 8.0 and call["prompt_sha"] == "abc123"
+
+
+def test_generate_json_reports_retry_and_validation_timings():
+    original_generate, original_calls = engine.generate, list(engine._CALLS)
+    responses = iter(["not json", '{"findings": []}'])
+    try:
+        engine._CALLS.clear()
+
+        def fake_generate(*args, **kwargs):
+            engine._CALLS.append({"seconds": 0.125, "tokens_out": 2})
+            return next(responses)
+
+        engine.generate = fake_generate
+        payload, meta = engine.generate_json([], retries=1)
+        assert payload == {"findings": []}
+        assert meta["attempts"] == 2 and meta["retries"] == 1
+        assert meta["parsed"] is True
+        assert meta["generation_seconds"] == 0.24
+        assert meta["json_validation_seconds"] >= 0
+        assert meta["total_seconds"] >= meta["json_validation_seconds"]
+        assert [call["json_valid"] for call in engine._CALLS] == [False, True]
+    finally:
+        engine.generate = original_generate
+        engine._CALLS[:] = original_calls
+
+
+def test_4bit_auto_selection_is_limited_to_small_cuda_devices():
+    class FakeCuda:
+        def __init__(self, memory):
+            self.memory = memory
+
+        def get_device_properties(self, _device):
+            return type("Properties", (), {"total_memory": self.memory})()
+
+    fake_torch = type("FakeTorch", (), {"cuda": FakeCuda(8 * 1024**3)})()
+    original = config.LOAD_IN_4BIT
+    try:
+        config.LOAD_IN_4BIT = "auto"
+        assert engine._use_4bit("cuda", fake_torch) is True
+        assert engine._use_4bit("cpu", fake_torch) is False
+        fake_torch.cuda = FakeCuda(12 * 1024**3)
+        assert engine._use_4bit("cuda", fake_torch) is False
+        config.LOAD_IN_4BIT = "false"
+        assert engine._use_4bit("cuda", fake_torch) is False
+        config.LOAD_IN_4BIT = "true"
+        assert engine._use_4bit("cuda", fake_torch) is True
+    finally:
+        config.LOAD_IN_4BIT = original
 
 
 def test_the_audit_database_handle_is_released():
@@ -932,6 +1050,108 @@ def test_a_fenced_answer_still_counts_as_structured():
     findings, problems = M.parse_answer(answer)
     assert findings == []
     assert any("fence" in problem for problem in problems), problems
+
+
+# ------------------------------------------------- the released document: summary and Q&A
+# A reading aid on the Policy page. It is given the released text only and never changes a
+# decision, so what is tested is what the model is shown and what happens when it fails.
+
+
+def _stub_model(answer="ok"):
+    """Replace engine.generate_json with a recorder; returns (calls, restore)."""
+    seen: list[tuple[str, list[dict]]] = []
+    original = engine.generate_json
+
+    def fake(messages, *, purpose="json", max_new_tokens=None, retries=2):
+        seen.append((purpose, messages))
+        return ({"answer": answer} if answer is not None else None), {"parsed": True}
+
+    engine.generate_json = fake
+    return seen, lambda: setattr(engine, "generate_json", original)
+
+
+def test_a_short_released_document_goes_to_the_model_whole_and_alone():
+    from app.policy import document_qa
+
+    released = "Contract between ACME and the vendor.\nPhone: 0500000000 (synthetic)"
+    seen, restore = _stub_model("The phone is 0500000000.")
+    try:
+        result = document_qa.ask(released, "What is the phone number?")
+    finally:
+        restore()
+    assert len(seen) == 1 and result["whole_document"] is True
+    system, user = seen[0][1][0]["content"], seen[0][1][1]["content"]
+    assert released in user and "What is the phone number?" in user
+    assert "RELEASED" in system and "never try to guess" in system
+    assert result["answer"] == "The phone is 0500000000."
+
+
+def test_a_long_released_document_sends_only_the_passages_that_match_the_question():
+    from app.policy import document_qa
+
+    lines = [f"البند {i}: نص عادي عن الخدمات والتسليم رقم {i}" for i in range(2000)]
+    lines[1234] = "تنتهي صلاحية العقد في تاريخ 2027-03-01 ويجدد تلقائيا"
+    released = "\n".join(lines)
+    assert len(released) > config.MAX_DOC_CHARS
+    seen, restore = _stub_model()
+    try:
+        result = document_qa.ask(released, "متى تنتهي صلاحية العقد؟")
+    finally:
+        restore()
+    sent = seen[0][1][1]["content"]
+    assert "2027-03-01" in sent, "the passage that answers the question was not sent"
+    assert len(sent) < config.MAX_DOC_CHARS, len(sent)
+    assert result["whole_document"] is False and result["notes"]
+
+
+def test_a_long_summary_is_built_part_by_part_and_then_combined():
+    from app.policy import document_qa
+
+    released = "\n".join(f"line {i} with some content about the contract" for i in
+                         range(config.MAX_DOC_CHARS // 10))
+    seen, restore = _stub_model("a summary")
+    try:
+        result = document_qa.summarize(released)
+    finally:
+        restore()
+    purposes = [purpose for purpose, _ in seen]
+    assert len(seen) > 2 and purposes[-1] == "document summary combine", purposes
+    assert all("part" in purpose for purpose in purposes[:-1]), purposes
+    assert result["kind"] == "summary" and result["answer"] == "a summary"
+
+
+def test_a_model_that_returns_nothing_is_an_error_not_an_empty_answer():
+    from app.policy import document_qa
+
+    seen, restore = _stub_model(None)
+    try:
+        for attempt in (lambda: document_qa.ask("some released text", "a question"),
+                        lambda: document_qa.summarize("some released text")):
+            try:
+                attempt()
+            except document_qa.DocumentQAError:
+                continue
+            raise AssertionError("an empty model answer was shown as if it were an answer")
+    finally:
+        restore()
+
+
+def test_an_empty_question_or_an_empty_document_is_refused_before_any_model_call():
+    from app.policy import document_qa
+
+    seen, restore = _stub_model()
+    try:
+        for attempt in (lambda: document_qa.ask("text", "   "),
+                        lambda: document_qa.ask("   ", "a question"),
+                        lambda: document_qa.summarize("   ")):
+            try:
+                attempt()
+            except document_qa.DocumentQAError:
+                continue
+            raise AssertionError("an empty request reached the model")
+        assert seen == [], "the model was called for an empty request"
+    finally:
+        restore()
 
 
 # ---------------------------------------------------------------------------- runner

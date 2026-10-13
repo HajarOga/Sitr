@@ -9,7 +9,6 @@ Files are never stored permanently: the audit log keeps the decisions, not the d
 """
 from __future__ import annotations
 
-import shutil
 import tempfile
 from pathlib import Path
 

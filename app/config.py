@@ -20,6 +20,7 @@ on a laptop and on a GPU box without a code change.
     SAFESHARE2_MODEL          Hugging Face model id  (default Qwen/Qwen2.5-3B-Instruct)
     SAFESHARE2_DTYPE          auto | float16 | bfloat16 | float32
     SAFESHARE2_DEVICE         auto | cuda | mps | cpu
+    SAFESHARE2_LOAD_IN_4BIT   auto | true | false  (auto uses NF4 on CUDA GPUs <= 10 GiB)
     SAFESHARE2_ALLOW_DOWNLOAD 1 = let the app fetch the model itself (default 0: use
                               `python -m scripts.setup_model` instead)
     SAFESHARE2_ASK_THRESHOLD  below this confidence a person decides (default 0.80)
@@ -88,11 +89,17 @@ def resolve_provider() -> str:
 MODEL_NAME = os.getenv("SAFESHARE2_MODEL", "Qwen/Qwen2.5-3B-Instruct")
 MODEL_DTYPE = os.getenv("SAFESHARE2_DTYPE", "auto").lower()
 MODEL_DEVICE = os.getenv("SAFESHARE2_DEVICE", "auto").lower()
+LOAD_IN_4BIT = os.getenv("SAFESHARE2_LOAD_IN_4BIT", "auto").strip().lower()
 ALLOW_DOWNLOAD = os.getenv("SAFESHARE2_ALLOW_DOWNLOAD", "0") == "1"
+
+# The fine-tuned adapter from training/train_lora.py (or training/train_dpo.py).
+# Empty means: run the base model exactly as it came.
+ADAPTER = os.getenv("SAFESHARE2_ADAPTER", "").strip() or None
 
 # The name that goes into the audit log, the dashboard and the run summary: whichever
 # model is actually deciding.
-ACTIVE_MODEL = API_MODEL if resolve_provider() == "api" else MODEL_NAME
+ACTIVE_MODEL = (API_MODEL if resolve_provider() == "api" else
+                f"{MODEL_NAME} + LoRA ({Path(ADAPTER).name})" if ADAPTER else MODEL_NAME)
 
 # The model is not optional in this project. Kept as a setting so the failure is
 # explicit and testable rather than assumed.
@@ -109,10 +116,6 @@ CHUNK_OVERLAP_LINES = int(os.getenv("SAFESHARE2_CHUNK_OVERLAP", "2"))
 # ------------------------------------------------------------------------ decisions
 ASK_THRESHOLD = float(os.getenv("SAFESHARE2_ASK_THRESHOLD", "0.80"))
 
-# The fine-tuned adapter from training/train_lora.py (or training/train_dpo.py).
-# Empty means: run the base model exactly as it came. This is what makes a
-# before/after comparison a setting rather than a code change.
-ADAPTER = os.getenv("SAFESHARE2_ADAPTER", "").strip() or None
 # Below this the item is not even a candidate for the model's own second look: it is
 # simply handed to a person.
 CONFIDENCE_FLOOR = float(os.getenv("SAFESHARE2_CONFIDENCE_FLOOR", "0.35"))

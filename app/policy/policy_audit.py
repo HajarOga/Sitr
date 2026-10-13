@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..audit.store import _connect, _now
+from ..audit.store import _now, _session
 
 
 def _payload(edit) -> dict:
@@ -33,7 +33,7 @@ def _payload(edit) -> dict:
 def record_policy_edit(edit, db_path: str | Path | None = None) -> int:
     """Append one policy change. Returns the row id."""
     payload = _payload(edit)
-    with _connect(db_path) as connection:
+    with _session(db_path) as connection:
         cursor = connection.execute(
             "INSERT INTO policy_edits (created_at, editor, kind, rule_id, version_before,"
             " version_after, changed_fields, before_json, after_json, note)"
@@ -58,7 +58,7 @@ def policy_edits(limit: int = 50, rule_id: str | None = None,
         params.append(rule_id)
     query += " ORDER BY edit_id DESC LIMIT ?"
     params.append(limit)
-    with _connect(db_path) as connection:
+    with _session(db_path) as connection:
         rows = [dict(row) for row in connection.execute(query, params).fetchall()]
     for row in rows:
         for source, target in (("before_json", "before"), ("after_json", "after"),
@@ -73,7 +73,7 @@ def policy_edits(limit: int = 50, rule_id: str | None = None,
 
 
 def latest_version(db_path: str | Path | None = None) -> str:
-    with _connect(db_path) as connection:
+    with _session(db_path) as connection:
         row = connection.execute(
             "SELECT version_after FROM policy_edits ORDER BY edit_id DESC LIMIT 1"
         ).fetchone()

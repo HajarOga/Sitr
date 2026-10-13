@@ -153,7 +153,7 @@ def install_state() -> dict:
     installed = bool(snapshot is not None and required and not missing and tokenizer_present)
     return {
         "provider": "local",
-        "model": config.MODEL_NAME,
+        "model": config.ACTIVE_MODEL,
         "installed": installed,
         "path": str(snapshot) if snapshot else "",
         "weights": required,
@@ -230,6 +230,19 @@ def resolve_dtype(device: str) -> str:
     return "float32"
 
 
+def _use_4bit(device: str, torch) -> bool:
+    setting = config.LOAD_IN_4BIT
+    if setting in {"1", "true", "yes", "on"}:
+        return device == "cuda"
+    if setting in {"0", "false", "no", "off"}:
+        return False
+    if setting != "auto":
+        raise ValueError("SAFESHARE2_LOAD_IN_4BIT must be auto, true, or false")
+    if device != "cuda":
+        return False
+    return torch.cuda.get_device_properties(device).total_memory <= 10 * 1024**3
+
+
 def _torch_dtype(name: str):
     import torch
     return {"float16": torch.float16, "bfloat16": torch.bfloat16,
@@ -239,6 +252,7 @@ def _torch_dtype(name: str):
 @lru_cache(maxsize=1)
 def _load_local():
     """Load the tokenizer and the local model once (one copy per process)."""
+    load_started = time.perf_counter()
     state = ensure_installed()
     local_only = not config.ALLOW_DOWNLOAD
 
@@ -247,11 +261,24 @@ def _load_local():
     device = resolve_device()
     dtype_name = resolve_dtype(device)
     dtype = _torch_dtype(dtype_name)
+    import torch
+    load_in_4bit = _use_4bit(device, torch)
 
     tokenizer = AutoTokenizer.from_pretrained(config.MODEL_NAME,
                                              local_files_only=local_only)
-    model = AutoModelForCausalLM.from_pretrained(
-        config.MODEL_NAME, local_files_only=local_only, dtype=dtype)
+    model_kwargs = {"local_files_only": local_only, "dtype": dtype}
+    if device == "cuda":
+        model_kwargs["attn_implementation"] = "sdpa"
+    if load_in_4bit:
+        from transformers import BitsAndBytesConfig
+
+        model_kwargs["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=dtype,
+            bnb_4bit_use_double_quant=True)
+        model_kwargs["device_map"] = {"": torch.cuda.current_device()}
+    model = AutoModelForCausalLM.from_pretrained(config.MODEL_NAME, **model_kwargs)
 
     adapter = None
     if config.ADAPTER:
@@ -261,11 +288,14 @@ def _load_local():
         model = PeftModel.from_pretrained(model, config.ADAPTER)
         adapter = config.ADAPTER
 
-    if device != "cpu":
+    if device != "cpu" and not load_in_4bit:
         model = model.to(device)
     model.eval()
-    _LOADED.update({"provider": "local", "model": config.MODEL_NAME, "device": device,
-                    "dtype": dtype_name, "path": state["path"], "adapter": adapter})
+    _LOADED.update({"provider": "local", "model": active_model(), "device": device,
+                    "dtype": dtype_name, "path": state["path"], "adapter": adapter,
+                    "load_in_4bit": load_in_4bit,
+                    "load_seconds": round(time.perf_counter() - load_started, 2),
+                    "attention": getattr(model.config, "_attn_implementation", None)})
     return model, tokenizer
 
 
@@ -287,10 +317,11 @@ def load():
 def loaded_info() -> dict:
     """What the model is, without forcing a load."""
     if _LOADED:
-        return dict(_LOADED)
+        return {**_LOADED, "loaded": True}
     device = resolve_device()
     return {"provider": provider(), "model": active_model(), "device": device,
-            "dtype": resolve_dtype(device), "path": install_state()["path"]}
+            "dtype": resolve_dtype(device), "path": install_state()["path"],
+            "loaded": False, "load_in_4bit": False, "load_seconds": 0.0}
 
 
 def status() -> dict:
@@ -405,25 +436,28 @@ def generate(messages: list[dict], *, purpose: str = "generate",
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
     temperature = config.TEMPERATURE if temperature is None else temperature
 
-    started = time.time()
-    with torch.no_grad():
+    started = time.perf_counter()
+    with torch.inference_mode():
         output = model.generate(
             **inputs,
             max_new_tokens=max_new_tokens or config.MAX_NEW_TOKENS,
             do_sample=temperature > 0,
             temperature=temperature or 1.0,
             pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id)
-    seconds = time.time() - started
+    seconds = time.perf_counter() - started
 
     new_tokens = output[0][inputs["input_ids"].shape[1]:]
     text = tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+    tokens_out = int(new_tokens.shape[0])
     _CALLS.append({
         "purpose": purpose,
-        "model": config.MODEL_NAME,
+        "model": active_model(),
         "provider": "local",
         "prompt_chars": len(prompt),
         "output_chars": len(text),
-        "tokens_out": int(new_tokens.shape[0]),
+        "tokens_in": int(inputs["input_ids"].shape[1]),
+        "tokens_out": tokens_out,
+        "tokens_per_second": round(tokens_out / seconds, 2) if seconds else None,
         "seconds": round(seconds, 2),
         "prompt_sha": hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:12],
         "device": str(device),
@@ -491,23 +525,47 @@ def generate_json(messages: list[dict], *, purpose: str = "json",
     treat that as "no answer", never as "no findings".
     """
     conversation = list(messages)
-    meta: dict = {"purpose": purpose, "attempts": 0, "parsed": False, "seconds": 0.0}
+    started = time.perf_counter()
+    meta: dict = {
+        "purpose": purpose, "attempts": 0, "retries": 0, "parsed": False,
+        "seconds": 0.0, "generation_seconds": 0.0,
+        "json_validation_seconds": 0.0}
     text = ""
     for attempt in range(retries + 1):
+        call_count = len(_CALLS)
         text = generate(conversation, purpose=purpose, max_new_tokens=max_new_tokens,
                         json_mode=True)
         meta["attempts"] = attempt + 1
-        if _CALLS:
-            meta["seconds"] = round(meta["seconds"] + _CALLS[-1]["seconds"], 2)
+        calls = _CALLS[call_count:]
+        generation_seconds = sum(float(call.get("seconds") or 0) for call in calls)
+        meta["generation_seconds"] = round(
+            meta["generation_seconds"] + generation_seconds, 2)
+        meta["seconds"] = meta["generation_seconds"]
+        validation_started = time.perf_counter()
         payload = extract_json(text)
+        validation_seconds = time.perf_counter() - validation_started
+        meta["json_validation_seconds"] = round(
+            meta["json_validation_seconds"] + validation_seconds, 4)
+        if calls:
+            calls[-1]["json_attempt"] = attempt + 1
+            calls[-1]["json_valid"] = payload is not None
+            calls[-1]["json_validation_seconds"] = round(validation_seconds, 4)
         if payload is not None:
             meta["parsed"] = True
             meta["raw"] = text[:2000]
+            meta["retries"] = attempt
+            meta["total_seconds"] = max(
+                round(time.perf_counter() - started, 4),
+                meta["json_validation_seconds"])
             return payload, meta
         if attempt < retries:
             conversation = conversation + [
                 {"role": "assistant", "content": text[:600]},
                 {"role": "user", "content": JSON_NUDGE},
             ]
+    meta["retries"] = max(0, meta["attempts"] - 1)
     meta["raw"] = text[:2000]
+    meta["total_seconds"] = max(
+        round(time.perf_counter() - started, 4),
+        meta["json_validation_seconds"])
     return None, meta

@@ -1,400 +1,260 @@
 # SafeShare
 
-**Create a safe version of a document for every receiver.**
+SafeShare analyses a document for personal information, applies receiver-specific
+policy, and prepares a safer version for review and release. Rules and code enforce
+the release contract; the model proposes findings and actions.
 
-SafeShare is a prototype application built around a language model. The
-model reads the document, finds the personal data, chooses the action for the chosen
-receiver, cites the policy rule, and writes the substitute and the reasons. 
+## Requirements
 
-## What it looks like
+- Python 3.10 or newer (the project is tested with Python 3.13).
+- A supported local model installation for local inference, or an OpenAI-compatible
+  API key for hosted inference.
+- A CUDA-compatible NVIDIA GPU is optional for local inference. CPU and Apple
+  Silicon (`mps`) are also supported by the model engine when available.
 
-![The upload page: the document, the receiver, and what the model is](docs/img/01-upload.png)
+The application uses Streamlit. The optional HTTP API uses FastAPI and Uvicorn.
+Document support includes TXT, Markdown, DOCX, and PDF input; releases are written as
+DOCX or TXT.
 
-![The review page after a real run: 14 items, and what the guards changed](docs/img/02-review.png)
+## Install
 
-![The policy page: ask the policy a question, get the rules that answer it](docs/img/03-policy.png)
+Run commands from the project root.
 
-The code around the model owns three things:
-
-1. **The policy.** `app/rules/rules.json` is the authority. The model is given the
-   receiver's rules in its prompt and may not invent one. If it cites a rule that does not
-   exist, or one that is about a different type of data, the item is not applied — it goes
-   to a person.
-2. **The contract on the answer.** A finding must exist in the document (found by exact
-   match, or by a normalised match that folds Arabic-Indic digits). A change must cite a
-   valid rule. A substitute must survive the validators (shape, checksum, obviously fake).
-   Anything that fails goes back to a person rather than into a document.
-3. **The safe default.** Below the confidence threshold the item goes to a human, and an
-   item still waiting for a human is **left out of the release**, never left in.
-
----
-
-## Quick start
-
-```bash
-cd safeshare2
-pip install -r requirements.txt
-streamlit run app/ui_streamlit.py      # the dashboard opens in your browser
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-That is it for the API provider: the key is in `.env` (see below) and nothing needs to be
-downloaded. To run the model **on this machine** instead, there is one extra step — the
-weights are ~6 GB and are not in this repository:
+On macOS or Linux, create and activate the virtual environment with:
 
 ```bash
-python -m scripts.setup_model          # downloads Qwen2.5-3B-Instruct (~6 GB, once)
-SAFESHARE2_PROVIDER=local streamlit run app/ui_streamlit.py
-```
-
-### Where the model runs
-
-`SAFESHARE2_PROVIDER` decides, and `auto` (the default) follows whether a key is present.
-
-| setting | what happens | what leaves the machine |
-|---|---|---|
-| `api` | the document is sent to an OpenAI-compatible endpoint | **the document text, in the prompt** |
-| `local` | Qwen runs here, in this process | nothing |
-| `auto` | `api` when a key is configured, `local` otherwise | depends on the above |
-
-```bash
-SAFESHARE2_PROVIDER=api   SAFESHARE2_API_MODEL=deepseek-chat   # this build's setting
-SAFESHARE2_PROVIDER=local                                      # back to the 3B model
-```
-
-The key lives in `.env` at the project root, which `app/config.py` reads at import (a real
-environment variable always wins). **`.env` is not committed** — a live credential in git
-history is leaked the moment the repository is shared. A fresh clone does this instead:
-
-```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 cp .env.example .env
-# then put your own key in .env
 ```
 
-`.env.example` (no key in it, safe to commit):
+Edit `.env` for the provider you intend to use. The checked-in template explicitly
+selects the API provider; enter your own API key there, or switch to `local`. Never
+put a real key in source control. `.env` is ignored by Git.
 
-```
-SAFESHARE2_PROVIDER=api
-SAFESHARE2_API_BASE_URL=https://api.deepseek.com
-SAFESHARE2_API_MODEL=deepseek-chat
-DEEPSEEK_API_KEY=
-```
+## Choose an inference provider
 
-The same three settings work as plain environment variables if you would rather not keep a
-file at all:
+`SAFESHARE2_PROVIDER` accepts `api`, `local`, or `auto`.
 
-```bash
-SAFESHARE2_PROVIDER=api SAFESHARE2_API_MODEL=deepseek-chat DEEPSEEK_API_KEY=<your-key> \
-  streamlit run app/ui_streamlit.py
-```
-
-### Why the model step is separate
-
-This part applies to `SAFESHARE2_PROVIDER=local`. The weights are ~6 GB and are **not in
-this repository** (they are in `.gitignore`). A fresh clone therefore has no model, and the
-application will tell you so and stop. The install is one command, it resumes if
-interrupted, and it is verified afterwards by checking that every shard named in the model
-index is present and non-empty — an interrupted download looks finished until you check
-that.
-
-```bash
-python -m scripts.setup_model --check      # is it installed? no download
-python -m scripts.setup_model --json       # machine-readable status
-```
-
-With the API provider there is nothing to install: `setup_model` says so and exits without
-downloading anything.
-
-Where it goes: your Hugging Face cache (`~/.cache/huggingface/hub/...`), shared by every
-project on the machine. Nothing is copied into this folder, so the clone stays small and
-`git status` stays clean.
-
-### What it needs
-
-For the local model:
-
-| | |
-|---|---|
-| Python | 3.10 or newer (built and tested on 3.13) |
-| Disk | ~9 GB free: the decision model (~6 GB) **and** the policy embedder (~470 MB) |
-| RAM / GPU | 16 GB RAM works on Apple Silicon (fp16, ~6 GB); a CUDA GPU is much faster, and NVIDIA users can drop to 4-bit |
-| Network | needed **once**, for the two downloads. After that both models run offline |
-
-For the API provider: Python and an internet connection. No GPU, no disk, no weights. The
-policy index still runs locally either way — it embeds the policy, never a document.
-
-**Chroma is a prerequisite of this build**, not an extra. It is what makes the policy
-searchable, and `pip install -r requirements.txt` installs it: the release pipeline does
-not need it, but the Policy page asked for in this build does. `python -m
-scripts.setup_model --check` reports `chroma`, the embedder and the index separately, so a
-missing piece is named rather than inferred. The index itself lives in `data/index/`
-(git-ignored, disposable, rebuilt by `--rebuild-index`).
-
-Both models are chosen by setting, and both are downloaded by `setup_model`:
-
-```bash
-SAFESHARE2_DEVICE=cuda SAFESHARE2_DTYPE=bfloat16 streamlit run app/ui_streamlit.py
-SAFESHARE2_MODEL=Qwen/Qwen2.5-7B-Instruct ...        # any chat model on Hugging Face
-SAFESHARE2_EMBED_MODEL=<sentence-transformers id>    # embedder for the policy index
-SAFESHARE2_CHROMA_DIR=/path/to/index                 # where Chroma persists
-SAFESHARE2_EMBED_OFFLINE=1                           # never download the embedder
-```
-
----
-
-## Run it
-
-```bash
-python3 tests/test_safeshare2.py       # 37 tests, no model needed, ~1 second
-python -m scripts.smoke_test           # end to end, including the model
-python -m scripts.make_demo_document   # rebuild the sample Arabic/English document
-
-streamlit run app/ui_streamlit.py      # the dashboard: Upload → Review → Audit
-uvicorn app.main:app --reload          # optional HTTP API at 127.0.0.1:8000/docs
-```
-
-The dashboard has the same three pages as the first prototype, plus a Policy page:
-
-1. **Upload** — pick a document and choose the receiver; the reason for sharing comes from
-   the receiver's own policy entry, not a text box. A panel
-   shows whether the model is installed, on which device, and in which precision.
-2. **Review** — original and safe version side by side, with one card per item: the value,
-   the action, the rule the model cited, the model's own confidence, its reason, and — when
-   the model was not trusted — the exact reason it was sent to you ("the model cited a rule
-   that does not exist for this receiver"). An expander lists everything the guards changed
-   about the model's answer.
-3. **Audit** — every decision with its rule and reason, the AI's summary of the run, and
-   the **model's footprint**: one row per model call with its purpose, tokens and seconds.
-4. **Policy** — three tabs over `rules.json`, with Chroma underneath:
-   - *Ask the policy*: type a question in Arabic or English ("may an external vendor see a
-     phone number?") and get the rules that answer it, each with its id, action, reason and
-     source citation. Citations are resolved in code, so a rule id the model mistypes is
-     reported as a typo instead of being passed on, and an invented one is refused. The
-     answer is optional — with the model uninstalled or switched off, the retrieved rules
-     are still the answer.
-   - *Browse and edit*: the rules as a table, and a form to change a rule's action, reason
-     or source, add a rule, or delete one. Every write is validated against the same
-     loader the pipeline uses, written atomically, version-bumped and recorded with a name
-     and a timestamp. A rule's id and type are fixed — the audit log and the guards join on
-     them — and the file stays the authority: the next analysis reads the new policy with
-     no restart.
-   - *Change history*: the append-only log of policy edits, with the rule before and after,
-     so a release decided under `2026-10-08` can still be read against that policy.
-
-The Policy page cannot change a document or a decision. It answers questions about the
-policy and edits the policy; the release path is unchanged. That is deliberate: retrieval
-may add context to a prompt, but it must never remove an item, satisfy a guard, or stand in
-for a rule. A question the policy does not answer is reported as the policy being silent —
-the same consequence as a missing rule, which is `ASK_HUMAN`.
-
----
-
-## The adaptation path: prompt engineering, RAG, fine-tuning, alignment
-
-This is a generative-AI application in the sense the capstone brief means, and the four
-parts of the adaptation path are all present and separable:
-
-| part | where | state |
+| Value | Model location | Document privacy |
 |---|---|---|
-| prompt engineering | `app/llm/prompts.py` — the contract, the answer schema, the policy block | in use |
-| RAG | `app/policy/policy_index.py` — the rules are embedded in a Chroma collection and retrieved per receiver; `app/policy/qa.py` answers policy questions from what was retrieved | in use |
-| fine-tuning (LoRA/QLoRA) | `training/train_lora.py` on data from `training/prepare_data.py` | run on a free T4 |
-| alignment (DPO) | `training/make_preference_pairs.py` + `training/train_dpo.py` | run on a free T4 |
-| evaluation | `evaluation/` — five metrics, and a before/after table | runs anywhere |
+| `api` | Configured OpenAI-compatible endpoint (DeepSeek by default) | Document text is sent to that endpoint in the prompt. |
+| `local` | Local Hugging Face model | Document text stays on this machine. |
+| `auto` | API when an API key is configured; otherwise local | Follows the selected provider. |
+
+For API mode, set `SAFESHARE2_API_BASE_URL`, `SAFESHARE2_API_MODEL`, and either
+`SAFESHARE2_API_KEY` or `DEEPSEEK_API_KEY`. For local mode, the default base model is
+`Qwen/Qwen2.5-3B-Instruct`. A LoRA adapter is optional and is selected with
+`SAFESHARE2_ADAPTER`, pointing to a directory containing the adapter files. The
+adapter is not included in a fresh clone and is not modified by setup or evaluation.
+
+The `.env.example` file contains the supported settings and safe defaults. Environment
+variables override values in `.env`.
+
+## Install and configure a local model
+
+Install the project dependencies, then run the model setup tool from the project root:
 
 ```bash
-python -m training.make_training_documents      # our own documents + labels
-python -m training.prepare_data --skip-public   # prompt/completion pairs
-python -m training.make_preference_pairs        # chosen/rejected pairs for DPO
-python -m training.train_lora                   # on a GPU; see training/COLAB.md
-python -m training.train_dpo                    # on a GPU
-python -m evaluation.evaluate --live --out predictions/base.jsonl
-SAFESHARE2_ADAPTER=training/lora_adapter python -m evaluation.evaluate --live --out predictions/lora.jsonl
-python -m evaluation.evaluate --compare predictions/base.jsonl predictions/lora.jsonl
+python -m scripts.setup_model
+python -m scripts.setup_model --check
 ```
 
-The policy is never learned: it is retrieved and written into the prompt at request time,
-so a rule edited in the Policy page is in the next prompt with no restart and no
-retraining. What fine-tuning adds is the *shape* of the answer and this product's task
-vocabulary; what alignment adds is the *judgement* — asking a person rather than
-answering when the policy is silent.
+The setup tool downloads the configured model to the Hugging Face cache and can install
+the local policy-search embedder. The model weights and downloaded policy index are not
+stored in Git. Use `python -m scripts.setup_model --help` for options such as rebuilding
+the policy index.
 
-Two files to read, in this order: **`docs/MODEL_ADAPTATION.md`** (where the generative AI
-is, what is trained and why, the prompt template verbatim, and the datasets with their
-licences) and **`training/COLAB.md`** (the exact Colab steps, and the three
-`evaluation.evaluate --live` commands that produce the before/after numbers).
+### GPU acceleration
 
-## How it works
+The engine can use CUDA, Apple Metal (`mps`), or CPU according to
+`SAFESHARE2_DEVICE` and available hardware. On a CUDA-capable NVIDIA system, set local
+mode and select CUDA in `.env`:
 
-```
-Document
-  → the receiver's rules are put into the prompt (the policy, as data)
-  → the model reads the document and proposes: value, type, action, rule, substitute, reason
-  → guards enforce the contract (valid rule, value present, safe substitute)
-  → a second, focused model call re-examines what the model itself was unsure about
-  → anything still uncertain (or below 0.80 confidence) goes to a human
-  → the reviewer's answer is final; unanswered items leave the release
-  → the safe document is written (DOCX/TXT), the audit log records decisions and model calls
+```dotenv
+SAFESHARE2_PROVIDER=local
+SAFESHARE2_DEVICE=cuda
+SAFESHARE2_DTYPE=bfloat16
+SAFESHARE2_LOAD_IN_4BIT=auto
 ```
 
-The model does four jobs, and there is one prompt for each (`app/llm/prompts.py`):
+`SAFESHARE2_LOAD_IN_4BIT=auto` selects NF4 quantization on CUDA GPUs with 10 GiB VRAM
+or less; `true` and `false` explicitly enable or disable it. NF4 requires the pinned
+`bitsandbytes` dependency. BF16 is only used when supported by the GPU; `auto` chooses
+an available dtype.
 
-| job | what it is asked | code that checks it |
-|---|---|---|
-| `analyze` | read the document against the policy; list every item with type, action, cited rule, substitute, confidence, reason | every field validated; unknown types/actions refused; invented rules refused; value must be in the document |
-| `adjudicate` | a second look at the items it was unsure about, with more surrounding text | the policy still decides the action; it may only point at a valid rule, and confidence is capped at 0.90 |
-| `replacement` | invent a format-preserving, obviously fake substitute | shape and checksum validators; a bad substitute is replaced by the deterministic generator and the repair is recorded |
-| `summary` | write the audit note for the run | numbers only; no names, no values; stored with the run |
-
-Models are optional in the first prototype and mandatory here, so a failure is loud: if
-the model returns something unusable, the call raises and the dashboard says nothing was
-analysed, instead of showing an empty, falsely reassuring result.
-
----
-
-## Privacy
-
-- **Where the text goes depends on the provider** (`SAFESHARE2_PROVIDER`):
-  - `local` — the document is read, analysed and released on this machine. Nothing is
-    sent anywhere.
-  - `api` — the document text is sent to the configured endpoint
-    (`SAFESHARE2_API_BASE_URL`) in the prompt, because that is how the model is asked.
-    That is the whole trade for the speed, and it is the one thing in this project that
-    leaves the machine. The dashboard's Privacy panel says which mode is active, and the
-    upload page reports it per run.
-- **No telemetry**, and the only credential is the API key in `.env` (see *Where the model
-  runs*) — removed and rotated after the demo.
-- **Uploads are not kept.** A file is written to the temporary folder only long enough to
-  read it, then deleted (`SAFESHARE2_KEEP_UPLOADS=1` changes that for debugging).
-- **The audit log stores no original value.** Each row keeps a masked rendering
-  (`A******h M*******d`) and a short hash. Model calls are recorded as a prompt **hash**,
-  sizes, tokens and seconds — never the prompt, because the prompt contains document text.
-  This holds for both providers.
-
----
-
-## Project layout
-
-```
-safeshare2/
-├── app/
-│   ├── ui_streamlit.py          the three-page dashboard
-│   ├── main.py                  optional FastAPI backend (/api/analyze, /api/release, /api/audit)
-│   ├── core.py                  the pipeline: the model decides, the code applies
-│   ├── guards.py                the contract: valid rule, value present, safe substitute
-│   ├── config.py                every setting, including the model and its precision
-│   ├── llm/
-│   │   ├── engine.py            load the model, talk to it, parse JSON, record calls
-│   │   └── prompts.py           the four prompts - the product
-│   ├── rules/                   rules.json (48 rules, 5 receivers) + loader
-│   ├── pii_detection/           the type/action contract + Arabic digit folding
-│   ├── replacement/             the validated synthetic-value generator
-│   ├── document_processing/     PDF/DOCX/TXT readers, structure-preserving writer
-│   ├── review/                  the human-review queue
-│   └── audit/                   SQLite log: decisions, runs, model calls
-├── scripts/
-│   ├── setup_model.py           the prerequisite installer
-│   ├── smoke_test.py            end-to-end verification
-│   └── make_demo_document.py    rebuild the sample document
-├── tests/test_safeshare2.py     22 tests, no model required
-├── data/synthetic/              our own sample document (Arabic + English + a table)
-└── docs/                        SETUP · PIPELINE · AI · DEMO
-```
-
----
-
-## Pushing this to GitHub (and running it on another machine)
-
-The repository is ready for it: no weights, no local paths in code, and exactly one secret
-- the temporary API key in `.env`, which is committed on purpose for now (see *Where the
-model runs*) and must be rotated and removed before this goes anywhere public.
+The `torch` version is pinned in `requirements.txt`, but CUDA wheel availability depends
+on the operating system, Python version, and NVIDIA driver. After installation, verify
+the actual PyTorch build and device before running:
 
 ```bash
-cd safeshare2
-git add .
-git commit -m "SafeShare: purpose-bound release with a local model at the core"
-git remote add origin git@github.com:<account>/safeshare2.git
-git push -u origin main
+python -c "import torch; print('torch:', torch.__version__); print('CUDA build:', torch.version.cuda); print('CUDA available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'none')"
+python -m scripts.setup_model --check
 ```
 
-On the new machine:
+Install a PyTorch build compatible with the project pin, Python version, and installed
+NVIDIA driver if CUDA is not available. The full-report evaluator intentionally refuses
+CPU inference or an unconfirmed model/adapter configuration.
+
+## Run SafeShare
+
+Launch the Streamlit application from the project root:
 
 ```bash
-git clone git@github.com:<account>/safeshare2.git
-cd safeshare2
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python -m scripts.setup_model            # the model, once
-python3 tests/test_safeshare2.py         # 22 tests should pass
-python -m scripts.smoke_test             # end to end, now including the model
 streamlit run app/ui_streamlit.py
 ```
 
-A GPU box needs nothing extra: the same commands, and the device/precision are picked up
-automatically (`cuda` in bfloat16 or float16 instead of `mps` in float16).
+The dashboard provides Upload, Review, Audit log, and Policy pages. Analysis runs only
+after the user starts it. Progress and timing information reflect actual pipeline stages
+and completed document chunks.
 
----
+The optional HTTP API is:
 
-## Honest limitations
+```bash
+uvicorn app.main:app --reload
+```
 
-- **A 3B model is a small model.** It handles these documents well and it is fast enough
-  on a laptop, but it will miss things a larger model catches, especially in dense Arabic
-  free text. That is exactly why the confidence threshold, the guards and the review page
-  exist: the system is built to ask rather than to be trusted. Larger models are one
-  setting away (`SAFESHARE2_MODEL=Qwen/Qwen2.5-7B-Instruct`) and need more memory.
-- **Speed is real.** On an Apple Silicon laptop, a one-page document is a handful of
-  seconds per model call; a long document is chunked, so it is a multiple of that. On a
-  CUDA GPU it is several times faster. The dashboard reports the actual seconds per run.
-- **The prompts are the quality.** Changing the prompt changes the product. They live in
-  one file, they are versioned with the code, and `docs/AI.md` explains each one.
-- **PDF layout is not preserved** on the way out: PDFs are read fine, and the release is
-  written as DOCX with a note.
-- **Everything here is synthetic.** The sample and policy are ours; nothing has been run
-  against a real company document.
-- Code was written with an AI assistant (Hermes Agent) and reviewed, run and tested by the
-  team. AI use is disclosed, as the project brief requires.
+Its health endpoint is available at `http://127.0.0.1:8000/api/health`.
 
-## Results
+## Tests and smoke check
 
-Measured on the frozen 12-document test set in `data/test/` — documents the model was never
-trained on. 49 values had to be removed or replaced.
+Run the complete test suite:
 
-| metric | base model | + LoRA | + LoRA + DPO |
-|---|---|---|---|
-| structured output | 88.3% | 100.0% | 100.0% |
-| citation validity | 96.7% | 100.0% | 100.0% |
-| action agreement | 92.0% | 100.0% | 98.5% |
-| finding recall | 71.4% | 97.1% | 94.3% |
-| **leak rate** | **34.7%** | **2.0%** | **4.1%** |
+```bash
+python -m pytest -q
+```
 
-Policy retrieval, asked one question per rule (48 questions, filtered to the receiver):
-**recall@1 91.7%, recall@3 100%**. Per-document latency on a Colab T4: p95 **66 s** with the
-LoRA adapter.
+The smoke test exercises the model-backed analysis path when the configured model is
+available:
 
-On `data/test_no_rules`, where the receiver has no policy and the only correct answer is
-ASK_HUMAN: the base model leaked 100% of the values; both adapted models leaked **0%** and
-deferred **100%** to a person.
+```bash
+python -m scripts.smoke_test
+```
 
-The full method, and the caveats worth reading, are in `docs/MODEL_ADAPTATION.md`.
+Model-dependent checks can be reported as skipped when the required local model or
+provider is unavailable; a skip is not a passing inference test.
+
+## Evaluation
+
+The standard evaluation CLI can run a dataset, score saved predictions, or compare
+prediction files:
+
+```bash
+python -m evaluation.evaluate --live --test-dir data/test_second --out predictions/run.jsonl
+python -m evaluation.evaluate --score predictions/run.jsonl
+python -m evaluation.evaluate --compare predictions/base.jsonl predictions/adapter.jsonl
+```
+
+The policy RAG benchmark is a separate retrieval-only evaluation. It exercises English
+and Arabic questions at several Top-K values, does not invoke the answer model, and
+writes a uniquely timestamped Excel report under `evaluation/results/`:
+
+```bash
+python -m evaluation.evaluate_rag
+```
+
+The detailed report runner defaults to `data/test_second` (20 documents and 87 labels)
+and writes uniquely timestamped Excel and JSONL files to `evaluation/results/`:
+
+```bash
+python -m evaluation.full_report
+```
+
+For the Human Judge dataset, direct output to `testing/`:
+
+```bash
+python -m evaluation.full_report --test-dir data/test_human_judge --output-dir testing --dataset-name test_human_judge --expected-documents 20 --expected-labels 87
+```
+
+The detailed report runner requires the local Qwen2.5-3B-Instruct model, a configured
+LoRA adapter, CUDA, BF16 support, and the validated 4-bit load. It checks these
+requirements before counting a run as valid. Failed documents are reported separately
+and are not scored as successful documents. It does not alter the datasets, model
+weights, adapter, or earlier results.
+
+## Project layout
+
+```text
+app/                 Streamlit UI, optional API, pipeline, policy, model, and audit
+data/                Synthetic documents, training data, and evaluation fixtures
+docs/                Setup, pipeline, AI, demo, and model-adaptation documentation
+evaluation/          Evaluation CLI, metrics, reference policy, and detailed reports
+notebooks/            Optional training notebook
+scripts/              Model setup, smoke checks, and dataset utilities
+tests/                Automated test suite
+training/             Training-data preparation and LoRA/DPO scripts
+```
+
+Local runtime data, the virtual environment, `.env`, downloaded models and adapters,
+and generated evaluation reports are excluded from Git. Source datasets and their
+labels remain project files and are not changed by evaluation.
+
+## Privacy and release safeguards
+
+- In `local` mode, document inference runs on the machine. In `api` mode, document text
+  is sent to the configured endpoint.
+- Uploads are temporary by default. `SAFESHARE2_KEEP_UPLOADS=1` retains them for
+  debugging.
+- The local audit records masked values and hashes rather than original PII values;
+  model-call telemetry records metadata, not prompt text.
+- Policy rules are validated in code. Invalid findings or unresolved human-review
+  decisions are not silently treated as safe releases.
+
+For implementation details, see [docs/PIPELINE.md](docs/PIPELINE.md),
+[docs/AI.md](docs/AI.md), [docs/SETUP.md](docs/SETUP.md), and
+[training/COLAB.md](training/COLAB.md).
+
+## Previously published results
+
+The following baseline was reported on the frozen 12-document set in `data/test/`.
+It is retained for project history and is separate from the current detailed reports
+and retrieval-only RAG benchmark described above.
+
+| Metric | Base model | + LoRA | + LoRA + DPO |
+|---|---:|---:|---:|
+| Structured output | 88.3% | 100.0% | 100.0% |
+| Citation validity | 96.7% | 100.0% | 100.0% |
+| Action agreement | 92.0% | 100.0% | 98.5% |
+| Finding recall | 71.4% | 97.1% | 94.3% |
+| Leak rate | 34.7% | 2.0% | 4.1% |
+
+The published policy retrieval result was recall@1 91.7% and recall@3 100% across
+48 receiver-filtered questions. On `data/test_no_rules`, adapted models deferred all
+cases for human review, with no leaked values. See
+[docs/MODEL_ADAPTATION.md](docs/MODEL_ADAPTATION.md) for the original method and caveats.
 
 ## Data sources and licences
 
-| source | what it gives us | licence |
+| Source | Use | Licence |
 |---|---|---|
-| our own 24 synthetic documents (`training/make_training_documents.py`) | the per-receiver decisions — the part no public dataset has | authored by the team, synthetic |
-| `gretelai/gretel-pii-masking-en-v1` | English PII spans, for detection | Apache-2.0 |
+| Team-authored synthetic documents | Receiver-specific decisions and test material | Authored by the team |
+| `gretelai/gretel-pii-masking-en-v1` | English PII spans for detection | Apache-2.0 |
 | `mabahboh/sitr-arabic-pii` | Arabic and English PII spans | Apache-2.0 |
-| `Qwen/Qwen2.5-3B-Instruct` | the pre-trained base model | Apache-2.0 |
+| `Qwen/Qwen2.5-3B-Instruct` | Pre-trained base model | Apache-2.0 |
 
-Checked and **not** used: `aniket-curlscape/pii-masking-english-1k` (licence "other") and
-`ai4privacy/*` (custom two-tier licence, not open source). The rule library in
-`app/rules/rules.json` was written by the team.
+The project previously checked and did not use `aniket-curlscape/pii-masking-english-1k`
+(licence listed as “other”) or `ai4privacy/*` (custom two-tier licence). The policy
+library in `app/rules/rules.json` is team-authored.
 
 ## Team
 
 SafeShare capstone — Tuwaiq Academy, Generative AI Application Engineering bootcamp,
 October 2026: **Amal · Hajar · Ruba · Sana**.
 
-## Licence
+The project was developed with AI assistance and reviewed and tested by the team.
 
-MIT — see `LICENSE`. The model is Apache-2.0 (`Qwen/Qwen2.5-3B-Instruct`); it is downloaded
-at setup time and is not redistributed here.
+## License
+
+This project is licensed under the MIT License; see [LICENSE](LICENSE). Model and
+adapter terms are governed by their respective publishers and are not replaced by the
+project license.

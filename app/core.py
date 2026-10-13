@@ -21,7 +21,9 @@ What the code still owns, and always will:
 from __future__ import annotations
 
 import hashlib
+import time
 from dataclasses import dataclass, field
+from typing import Any, Callable
 
 from . import config, guards
 from .document_processing.document import Document
@@ -60,6 +62,12 @@ class AnalysisResult:
     model: str = ""
     calls: list[dict] = field(default_factory=list)
     summary_text: str | None = None
+    processing_seconds: float = 0.0
+    model_load_seconds: float = 0.0
+    model_generation_seconds: float = 0.0
+    json_validation_seconds: float = 0.0
+    guard_seconds: float = 0.0
+    summary_seconds: float = 0.0
 
     @property
     def pending(self) -> list[Detection]:
@@ -150,7 +158,7 @@ def _second_look(detections: list[Detection], document: Document, receiver: str,
             "why_questioned": d.meta.get("ask_reason", "low confidence"),
         } for d in batch]
 
-        payload, meta = engine.generate_json(
+        payload, _ = engine.generate_json(
             prompts.adjudicate_messages(payload_items, lib.receiver_label(receiver),
                                         _rules_for_prompt(lib, receiver)),
             purpose="adjudicate", max_new_tokens=900)
@@ -225,12 +233,24 @@ def answered(payload, key: str) -> bool:
 
 
 def analyze(document: Document, receiver: str, purpose: str = "",
-            library: RulesLibrary | None = None) -> AnalysisResult:
+            library: RulesLibrary | None = None, *,
+            progress_callback: Callable[[dict[str, Any]], None] | None = None,
+            include_summary: bool = True) -> AnalysisResult:
     """The model reads the document and proposes every action. Nothing else does."""
+    started = time.perf_counter()
+
+    def report(stage: str, message: str, **details: Any) -> None:
+        if progress_callback is not None:
+            progress_callback({
+                "stage": stage, "message": message,
+                "elapsed_seconds": round(time.perf_counter() - started, 1),
+                **details})
+
     lib = library or default_library()
     if receiver not in lib.receivers:
         raise KeyError(f"unknown receiver: {receiver}")
 
+    analysis_calls_start = len(engine.calls())
     engine.ensure_installed()          # mandatory: fail loudly, never fall back
     purpose = purpose or lib.receivers[receiver].purpose
     label = lib.receiver_label(receiver)
@@ -242,13 +262,35 @@ def analyze(document: Document, receiver: str, purpose: str = "",
     meta: dict = {}
 
     parts = chunks(text)
+    model_was_loaded_at_start = engine.loaded_info().get("loaded", False)
+    report("prepared", f"Document prepared as {len(parts)} analysis "
+                       f"{'chunk' if len(parts) == 1 else 'chunks'}.",
+           completed_chunks=0, total_chunks=len(parts), document_chars=len(text))
     if len(parts) > 1:
         notes.append(f"the document was analysed in {len(parts)} parts "
                      f"({len(text)} characters)")
     for index, part in enumerate(parts, start=1):
+        loaded_before = engine.loaded_info().get("loaded", False)
+        report("loading_model" if not loaded_before and engine.provider() == "local"
+               else "generating",
+               ("Loading the local model and analyzing chunk "
+                if not loaded_before and engine.provider() == "local"
+                else "Analyzing document chunk ") + f"{index}/{len(parts)}.",
+               completed_chunks=index - 1, total_chunks=len(parts),
+               current_chunk=index)
+        chunk_calls_start = len(engine.calls())
         payload, meta = engine.generate_json(
             prompts.analyze_messages(part, label, purpose, rules),
             purpose=f"analyze part {index}/{len(parts)}")
+        new_calls = engine.calls()[chunk_calls_start:]
+        report("chunk_complete",
+               f"Finished analysis chunk {index}/{len(parts)} "
+               f"({sum(int(call.get('tokens_out') or 0) for call in new_calls)} output "
+               f"tokens; {meta.get('attempts', 1)} JSON attempt(s)).",
+               completed_chunks=index, total_chunks=len(parts), current_chunk=index,
+               attempts=meta.get("attempts", 1),
+               generation_seconds=meta.get("generation_seconds", 0.0),
+               json_validation_seconds=meta.get("json_validation_seconds", 0.0))
         if answered(payload, "findings"):
             parsed_any = True
             findings.extend(items_from(payload, "findings"))
@@ -263,6 +305,9 @@ def analyze(document: Document, receiver: str, purpose: str = "",
             f"{(meta.get('raw') or '')[:200]!r}")
 
     generator = FakeGenerator(receiver=receiver)
+    report("guards", "Checking model findings against the document and policy guards.",
+           completed_chunks=len(parts), total_chunks=len(parts))
+    guards_started = time.perf_counter()
     detections, guard_notes = guards.check_findings(findings, document, receiver, lib,
                                                     generator)
     notes.extend(guard_notes)
@@ -273,8 +318,18 @@ def analyze(document: Document, receiver: str, purpose: str = "",
         detection.meta["value_hash"] = value_hash(detection.original_text)
         detection.meta["detector"] = "llm"
 
-    if config.ADJUDICATE:
+    guard_seconds = time.perf_counter() - guards_started
+    uncertain_count = sum(
+        d.action == Action.ASK_HUMAN.value and d.confidence >= config.CONFIDENCE_FLOOR
+        for d in detections)
+    if config.ADJUDICATE and uncertain_count:
+        report("adjudicating", f"Taking a second look at {uncertain_count} uncertain "
+                               f"finding(s).",
+               completed_chunks=len(parts), total_chunks=len(parts),
+               uncertain_findings=uncertain_count)
+        adjudication_started = time.perf_counter()
         _second_look(detections, document, receiver, lib, notes)
+        guard_seconds += time.perf_counter() - adjudication_started
 
     for index, detection in enumerate(detections):
         detection.meta["id"] = f"d{index}"
@@ -283,18 +338,42 @@ def analyze(document: Document, receiver: str, purpose: str = "",
                               detections=detections, generator=generator,
                               rules_version=lib.version, notes=notes,
                               model=config.ACTIVE_MODEL,
-                              calls=engine.calls())
+                              calls=engine.calls()[analysis_calls_start:],
+                              model_load_seconds=(
+                                  float(engine.loaded_info().get("load_seconds") or 0)
+                                  if not model_was_loaded_at_start
+                                  and engine.provider() == "local"
+                                  else 0.0))
+    analysis.processing_seconds = round(time.perf_counter() - started, 2)
+    analysis.guard_seconds = round(guard_seconds, 4)
+    analysis.model_generation_seconds = round(sum(
+        float(call.get("seconds") or 0) for call in analysis.calls), 2)
+    analysis.json_validation_seconds = round(sum(
+        float(call.get("json_validation_seconds") or 0) for call in analysis.calls), 4)
 
-    if config.SUMMARY and detections:
+    if config.SUMMARY and include_summary and detections:
+        summary_started = time.perf_counter()
+        report("summarizing", "Writing the short analysis summary.",
+               completed_chunks=len(parts), total_chunks=len(parts))
         summary = analysis.summary()
         payload, _ = engine.generate_json(
             prompts.summary_messages(label, purpose, summary["by_action"],
                                      summary["items"], summary["needs_review"],
                                      [d.meta for d in detections]),
             purpose="summary", max_new_tokens=250)
+        analysis.summary_seconds = round(time.perf_counter() - summary_started, 4)
         if isinstance(payload, dict):
             analysis.summary_text = str(payload.get("summary") or "").strip() or None
-        analysis.calls = engine.calls()
+        analysis.calls = engine.calls()[analysis_calls_start:]
+        analysis.model_generation_seconds = round(sum(
+            float(call.get("seconds") or 0) for call in analysis.calls), 2)
+        analysis.json_validation_seconds = round(sum(
+            float(call.get("json_validation_seconds") or 0)
+            for call in analysis.calls), 4)
+        analysis.processing_seconds = round(time.perf_counter() - started, 2)
+    report("complete", f"Analysis complete with {len(detections)} findings.",
+           completed_chunks=len(parts), total_chunks=len(parts),
+           findings=len(detections), total_seconds=analysis.processing_seconds)
     return analysis
 
 

@@ -58,7 +58,23 @@ def _migrate(connection: sqlite3.Connection) -> None:
     recreated: `decisions.rules_version` was added when the policy became editable, and a
     database written before that still has to open and still has to be readable.
     """
-    future = {"decisions": {"rules_version": "TEXT"}}
+    future = {
+        "decisions": {"rules_version": "TEXT"},
+        "runs": {
+            "processing_seconds": "REAL DEFAULT 0",
+            "model_load_seconds": "REAL DEFAULT 0",
+            "json_validation_seconds": "REAL DEFAULT 0",
+        },
+        "model_calls": {
+            "tokens_in": "INTEGER",
+            "tokens_per_second": "REAL",
+            "prompt_chars": "INTEGER",
+            "output_chars": "INTEGER",
+            "json_attempt": "INTEGER",
+            "json_valid": "INTEGER",
+            "json_validation_seconds": "REAL DEFAULT 0",
+        },
+    }
     for table, columns in future.items():
         present = {row["name"] for row in
                    connection.execute(f"PRAGMA table_info({table})").fetchall()}
@@ -84,17 +100,23 @@ def record_run(analysis, applied: dict, run_id: str | None = None,
 
     calls = list(getattr(analysis, "calls", []) or [])
     model_seconds = round(sum(float(c.get("seconds") or 0) for c in calls), 2)
+    json_validation_seconds = round(sum(
+        float(c.get("json_validation_seconds") or 0) for c in calls), 4)
     document_name = analysis.document.filename
     with _session(db_path) as connection:
         connection.execute(
             "INSERT INTO runs (run_id, created_at, document, receiver, purpose, items,"
             " replaced, removed, kept, pending, incomplete, rules_version, model,"
-            " model_seconds, model_calls, ai_summary)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " model_seconds, model_calls, processing_seconds, model_load_seconds,"
+            " json_validation_seconds, ai_summary)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (run_id, _now(), document_name, analysis.receiver, analysis.purpose,
              len(analysis.detections), counts["REPLACE"], counts["REMOVE"], counts["KEEP"],
              len(applied["pending"]), int(applied["incomplete"]), analysis.rules_version,
              getattr(analysis, "model", "") or "", model_seconds, len(calls),
+             float(getattr(analysis, "processing_seconds", 0.0) or 0.0),
+             float(getattr(analysis, "model_load_seconds", 0.0) or 0.0),
+             json_validation_seconds,
              ai_summary or getattr(analysis, "summary_text", None)))
 
         rows = []
@@ -123,10 +145,21 @@ def record_run(analysis, applied: dict, run_id: str | None = None,
         if calls:
             connection.executemany(
                 "INSERT INTO model_calls (run_id, created_at, purpose, model, device,"
-                " tokens_out, seconds, prompt_sha) VALUES (?,?,?,?,?,?,?,?)",
+                " tokens_in, tokens_out, tokens_per_second, prompt_chars, output_chars,"
+                " seconds, json_attempt, json_valid, json_validation_seconds, prompt_sha)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [(run_id, _now(), str(call.get("purpose", "")),
                   str(call.get("model", "")), str(call.get("device", "")),
-                  int(call.get("tokens_out") or 0), float(call.get("seconds") or 0),
+                  int(call["tokens_in"]) if call.get("tokens_in") is not None else None,
+                  int(call.get("tokens_out") or 0),
+                  float(call["tokens_per_second"])
+                  if call.get("tokens_per_second") is not None else None,
+                  int(call["prompt_chars"]) if call.get("prompt_chars") is not None else None,
+                  int(call["output_chars"]) if call.get("output_chars") is not None else None,
+                  float(call.get("seconds") or 0),
+                  int(call["json_attempt"]) if call.get("json_attempt") is not None else None,
+                  int(bool(call["json_valid"])) if call.get("json_valid") is not None else None,
+                  float(call.get("json_validation_seconds") or 0),
                   str(call.get("prompt_sha", ""))) for call in calls])
         connection.commit()
     return run_id

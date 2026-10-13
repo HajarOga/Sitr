@@ -87,3 +87,25 @@ quality of this system, which is why it lives in one reviewable file.
 one would catch, especially in dense Arabic free text; PDF layout is not preserved on the
 way out; everything here is synthetic and has never been run against a real company
 document.
+
+
+### Note: SafeShare Model Inference Performance
+
+Performance profiling identified **LLM token generation as the primary bottleneck** when running our fine-tuned Qwen2.5-3B-Instruct LoRA model on the NVIDIA RTX 5060 Laptop GPU (8 GB VRAM).
+
+**Baseline measurements:**
+- Total execution time: 190.85 seconds
+- Initial model loading: 35.86 seconds
+- Model generation: 154.94 seconds (including the summary call)
+- Main analysis generation: 141.49 seconds for 225 tokens (~1.6 tokens/second)
+- Summary generation: 13.45 seconds
+- RAG retrieval: No call occurred during this run
+
+**Planned optimizations:**
+1. Test 4-bit quantization to reduce GPU memory usage and potentially improve inference speed.
+2. Remove the optional pre-review summary call while preserving the post-release audit summary.
+3. Compare optimized performance against the original BF16 configuration.
+
+**Important:** The optimizations must preserve the fine-tuned LoRA adapter, PII detection accuracy, policy decisions, and privacy safeguards. Any speed improvement must be validated against PII Recall, Leak Rate, and decision correctness before adoption.
+
+**Status:** Baseline profiling completed; optimization testing pending.
