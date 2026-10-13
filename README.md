@@ -214,6 +214,45 @@ For implementation details, see [docs/PIPELINE.md](docs/PIPELINE.md),
 [docs/AI.md](docs/AI.md), [docs/SETUP.md](docs/SETUP.md), and
 [training/COLAB.md](training/COLAB.md).
 
+## Previously published results
+
+The following baseline was reported on the frozen 12-document set in `data/test/`.
+It is retained for project history and is separate from the current detailed reports
+and retrieval-only RAG benchmark described above.
+
+| Metric | Base model | + LoRA | + LoRA + DPO |
+|---|---:|---:|---:|
+| Structured output | 88.3% | 100.0% | 100.0% |
+| Citation validity | 96.7% | 100.0% | 100.0% |
+| Action agreement | 92.0% | 100.0% | 98.5% |
+| Finding recall | 71.4% | 97.1% | 94.3% |
+| Leak rate | 34.7% | 2.0% | 4.1% |
+
+The published policy retrieval result was recall@1 91.7% and recall@3 100% across
+48 receiver-filtered questions. On `data/test_no_rules`, adapted models deferred all
+cases for human review, with no leaked values. See
+[docs/MODEL_ADAPTATION.md](docs/MODEL_ADAPTATION.md) for the original method and caveats.
+
+## Data sources and licences
+
+| Source | Use | Licence |
+|---|---|---|
+| Team-authored synthetic documents | Receiver-specific decisions and test material | Authored by the team |
+| `gretelai/gretel-pii-masking-en-v1` | English PII spans for detection | Apache-2.0 |
+| `mabahboh/sitr-arabic-pii` | Arabic and English PII spans | Apache-2.0 |
+| `Qwen/Qwen2.5-3B-Instruct` | Pre-trained base model | Apache-2.0 |
+
+The project previously checked and did not use `aniket-curlscape/pii-masking-english-1k`
+(licence listed as “other”) or `ai4privacy/*` (custom two-tier licence). The policy
+library in `app/rules/rules.json` is team-authored.
+
+## Team
+
+SafeShare capstone — Tuwaiq Academy, Generative AI Application Engineering bootcamp,
+October 2026: **Amal · Hajar · Ruba · Sana**.
+
+The project was developed with AI assistance and reviewed and tested by the team.
+
 ## License
 
 This project is licensed under the MIT License; see [LICENSE](LICENSE). Model and
