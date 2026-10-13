@@ -155,6 +155,14 @@ python -m evaluation.evaluate --score predictions/run.jsonl
 python -m evaluation.evaluate --compare predictions/base.jsonl predictions/adapter.jsonl
 ```
 
+The policy RAG benchmark is a separate retrieval-only evaluation. It exercises English
+and Arabic questions at several Top-K values, does not invoke the answer model, and
+writes a uniquely timestamped Excel report under `evaluation/results/`:
+
+```bash
+python -m evaluation.evaluate_rag
+```
+
 The detailed report runner defaults to `data/test_second` (20 documents and 87 labels)
 and writes uniquely timestamped Excel and JSONL files to `evaluation/results/`:
 
