@@ -1,0 +1,110 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Sitr: app (Streamlit) - uses .env",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "streamlit",
+      "args": [
+        "run",
+        "app/ui_streamlit.py",
+        "--server.port",
+        "8501"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "python": "${command:python.interpreterPath}",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Sitr: app (local model, no API key needed)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "streamlit",
+      "args": [
+        "run",
+        "app/ui_streamlit.py",
+        "--server.port",
+        "8501"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "python": "${command:python.interpreterPath}",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "SAFESHARE2_PROVIDER": "local"
+      }
+    },
+    {
+      "name": "Sitr: HTTP API (uvicorn :8000)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "app.main:app",
+        "--reload",
+        "--port",
+        "8000"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "python": "${command:python.interpreterPath}",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "SAFESHARE2_PROVIDER": "local"
+      }
+    },
+    {
+      "name": "Sitr: smoke test (local model)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.smoke_test",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "python": "${command:python.interpreterPath}",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "SAFESHARE2_PROVIDER": "local"
+      }
+    },
+    {
+      "name": "Sitr: tests (pytest)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "tests",
+        "-q"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "python": "${command:python.interpreterPath}"
+    },
+    {
+      "name": "Sitr: RAG benchmark (retrieval only)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "evaluation.evaluate_rag",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "python": "${command:python.interpreterPath}"
+    },
+    {
+      "name": "Sitr: full report (needs a CUDA GPU + adapter)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "evaluation.full_report",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "python": "${command:python.interpreterPath}"
+    }
+  ]
+}

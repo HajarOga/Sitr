@@ -1,0 +1,58 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Sitr: install requirements",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m pip install -r requirements.txt",
+      "problemMatcher": []
+    },
+    {
+      "label": "Sitr: download the local model",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m scripts.setup_model --yes",
+      "problemMatcher": []
+    },
+    {
+      "label": "Sitr: build the policy index (RAG)",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m scripts.setup_model --index",
+      "problemMatcher": []
+    },
+    {
+      "label": "Sitr: model check",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m scripts.setup_model --check",
+      "problemMatcher": []
+    },
+    {
+      "label": "Sitr: run tests",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m pytest tests -q",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Sitr: smoke test",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m scripts.smoke_test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Sitr: run app on :8501",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m streamlit run app/ui_streamlit.py --server.port 8501",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Sitr: export the training data",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m scripts.export_training_data",
+      "problemMatcher": []
+    }
+  ]
+}
