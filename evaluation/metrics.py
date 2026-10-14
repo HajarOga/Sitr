@@ -287,7 +287,7 @@ def aggregate(scores: list[DocumentScore]) -> dict:
 
 
 def format_report(metrics: dict, scores: list[DocumentScore], title: str = "") -> str:
-    lines = [f"SafeShare evaluation{(' - ' + title) if title else ''}",
+    lines = [f"Sitr evaluation{(' - ' + title) if title else ''}",
              "-" * 46,
              f"Documents: {metrics['documents']}   labelled items: {metrics['labelled_items']}"
              f"   reported: {metrics['reported_items']}", ""]

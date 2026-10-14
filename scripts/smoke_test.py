@@ -283,7 +283,7 @@ def run_api_check(state: dict) -> None:
 
 
 def main() -> int:
-    print("SafeShare smoke test")
+    print("Sitr smoke test")
     state = engine.install_state()
     if not state["installed"]:
         print("\nThe model is not installed yet, so only the parts that do not need it "

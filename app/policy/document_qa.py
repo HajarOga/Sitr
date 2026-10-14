@@ -1,4 +1,4 @@
-"""Summarise, or answer questions about, the document SafeShare released.
+"""Summarise, or answer questions about, the document Sitr released.
 
 This is a reading aid for the person who just generated a release. It is given the
 **released text only** - what `safe_text(document, applied["changed"])` returns - never the

@@ -16,7 +16,7 @@ both written into the cell:
 
 - **Recommended:** add a GitHub token as a Colab secret named `GITHUB_TOKEN` — sidebar key
   icon, then GitHub → Settings → Developer settings → Personal access tokens → Fine-grained
-  → repository access: only `safeshare2` → Permissions: Contents = Read-only.
+  → repository access: only `sitr` → Permissions: Contents = Read-only.
 - Or make the repository public once. Its history holds no secrets (`.env` was never
   committed; the only `sk-` ever added was a placeholder), but keeping coursework private
   is the safer choice while it is being marked.
@@ -28,8 +28,8 @@ The sections below are the same steps spelled out, for reading.
 ## 0. Get the code and the libraries
 
 ```python
-!git clone https://github.com/HajarOga/safeshare2.git
-%cd safeshare2
+!git clone https://github.com/HajarOga/sitr.git
+%cd sitr
 !pip install -q -r requirements.txt -r training/requirements-train.txt
 ```
 

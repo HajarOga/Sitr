@@ -1,4 +1,4 @@
-"""Evaluate SafeShare's policy retriever without invoking the answer model.
+"""Evaluate Sitr's policy retriever without invoking the answer model.
 
 Run from the project root:
     python -m evaluation.evaluate_rag

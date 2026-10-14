@@ -175,7 +175,7 @@ def ensure_installed() -> dict:
 
     if state.get("provider") == "api":
         raise ModelNotInstalled(
-            f"SafeShare is set to use the hosted {config.API_MODEL} API at "
+            f"Sitr is set to use the hosted {config.API_MODEL} API at "
             f"{config.API_BASE_URL}, but no key is configured. Put one in the `.env` "
             f"file at the project root:\n\n    DEEPSEEK_API_KEY=<your key>\n\n"
             f"or run the local model instead with SAFESHARE2_PROVIDER=local.",
@@ -191,7 +191,7 @@ def ensure_installed() -> dict:
         detail = "no local copy was found"
 
     raise ModelNotInstalled(
-        f"SafeShare needs {config.MODEL_NAME} and it is not usable on this machine: "
+        f"Sitr needs {config.MODEL_NAME} and it is not usable on this machine: "
         f"{detail}. Install it with:\n\n    {SETUP_COMMAND}\n\n"
         f"(downloads once, about 6 GB, into {state['cache_dir']})",
         missing=state["missing_files"])

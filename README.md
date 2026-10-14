@@ -1,7 +1,7 @@
 # سِتر · Sitr
 
-> Formerly **SafeShare** — the name used in earlier submissions. The repository slug is
-> unchanged so existing links keep working.
+> Formerly **SafeShare** — the name used in earlier submissions. The repository is now
+> `HajarOga/sitr`; GitHub redirects the previous URLs.
 
 Sitr analyses a document for personal information, applies receiver-specific
 policy, and prepares a safer version for review and release. Rules and code enforce

@@ -51,7 +51,7 @@ def load_rows(path: Path) -> list[dict]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="LoRA/QLoRA fine-tuning for SafeShare")
+    parser = argparse.ArgumentParser(description="LoRA/QLoRA fine-tuning for Sitr")
     parser.add_argument("--base", default="Qwen/Qwen2.5-3B-Instruct",
                         help="any Hugging Face chat model; the app reads the same name "
                              "from SAFESHARE2_MODEL")

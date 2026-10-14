@@ -1,4 +1,4 @@
-# SafeShare2 - dependencies
+# Sitr (سِتر) - dependencies
 #
 # The model is mandatory in this build, so torch/transformers are core dependencies here
 # (in the first prototype they were optional extras).

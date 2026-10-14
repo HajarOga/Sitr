@@ -36,7 +36,7 @@ from .policy.policy_index import PolicyIndexError, get_index
 from .review.review_queue import apply_review, build_queue, review_state
 from .rules.store import library as default_library
 
-app = FastAPI(title="SafeShare", version="0.1.0",
+app = FastAPI(title="Sitr", version="0.1.0",
               description="Create a safe version of a document for each receiver, with "
                           "a local language model making the decisions.")
 
@@ -300,4 +300,4 @@ def audit_export(limit: int = 1000) -> PlainTextResponse:
     return PlainTextResponse(audit.to_csv(audit.recent(limit=limit)),
                              media_type="text/csv",
                              headers={"Content-Disposition":
-                                      "attachment; filename=safeshare2-audit.csv"})
+                                      "attachment; filename=sitr-audit.csv"})

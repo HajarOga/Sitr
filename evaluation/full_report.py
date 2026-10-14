@@ -82,7 +82,7 @@ def _write_workbook(path: Path, report: dict[str, Any]) -> None:
     workbook = Workbook()
     summary = workbook.active
     summary.title = "Summary"
-    summary.append([f"SafeShare {report.get('dataset_name', 'test_second')} evaluation"])
+    summary.append([f"Sitr {report.get('dataset_name', 'test_second')} evaluation"])
     summary["A1"].font = Font(size=16, bold=True, color="FFFFFF")
     summary["A1"].fill = PatternFill("solid", fgColor="17365D")
     summary.merge_cells("A1:E1")

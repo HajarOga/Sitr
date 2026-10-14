@@ -132,7 +132,7 @@ def score_file(path: Path) -> tuple[list[M.DocumentScore], dict]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Evaluate SafeShare against its test set")
+    parser = argparse.ArgumentParser(description="Evaluate Sitr against its test set")
     parser.add_argument("--live", action="store_true",
                         help="run the configured model on the test set")
     parser.add_argument("--out", default=str(ROOT / "predictions" / "run.jsonl"),

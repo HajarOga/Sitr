@@ -55,7 +55,7 @@ RECEIVERS = ["EXTERNAL_VENDOR", "INTERNAL_HR", "ANALYST", "CUSTOMER_SUPPORT", "C
 #            first_name, name, credit_card_number, phone_number, last_name, address, city...
 #   sitr:    private_phone, private_email, national_id, iqama, private_date, employee_id,
 #            account_number, private_address, passport_number, gulf_iban, national_address...
-# Anything not in this map is dropped rather than forced into a category: SafeShare has
+# Anything not in this map is dropped rather than forced into a category: Sitr has
 # twelve types, and a label like `medicine_name` or `vehicle_plate` is not one of them.
 LABEL_MAP = {
     # names
@@ -210,7 +210,7 @@ def from_public_dataset(source: str, limit: int, field_names: list[str],
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build SafeShare training data")
+    parser = argparse.ArgumentParser(description="Build Sitr training data")
     parser.add_argument("--skip-public", action="store_true",
                         help="only our own documents: no downloads, no `datasets` needed")
     parser.add_argument("--english-source", default="gretelai/gretel-pii-masking-en-v1",

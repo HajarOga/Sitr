@@ -71,7 +71,7 @@ def supported_kwargs(config_class, kwargs: dict) -> tuple[dict, dict]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="DPO alignment for SafeShare")
+    parser = argparse.ArgumentParser(description="DPO alignment for Sitr")
     parser.add_argument("--base", default="Qwen/Qwen2.5-3B-Instruct")
     parser.add_argument("--adapter", default=str(ROOT / "training" / "lora_adapter"),
                         help="the LoRA adapter from train_lora.py, if it exists")

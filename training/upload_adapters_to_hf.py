@@ -1,8 +1,8 @@
-"""Publish the trained SafeShare adapters to the Hugging Face Hub.
+"""Publish the trained Sitr adapters to the Hugging Face Hub.
 
 Run this where the adapters exist - the Colab runtime that trained them:
 
-    !python training/upload_adapters_to_hf.py --repo safeshare-qwen2.5-3b-lora-dpo
+    !python training/upload_adapters_to_hf.py --repo sitr-qwen2.5-3b-lora-dpo
 
 It refuses to publish an adapter folder that has no adapter_config.json, so an
 empty folder can never be mistaken for a successful upload.
@@ -37,10 +37,10 @@ tags:
   - data-protection
 ---
 
-# SafeShare - Qwen2.5-3B adapters
+# Sitr (سِتر) - Qwen2.5-3B adapters
 
 Adapters for **{base}** that turn the base model into the decision model of
-**SafeShare**: it reads a business document, finds the personal data in it, and
+**Sitr**: it reads a business document, finds the personal data in it, and
 decides - per receiver - whether each value is kept, replaced, removed, or
 should be asked about by a human, citing the rule it applied.
 
@@ -92,7 +92,7 @@ hosted API.
 
 ## Licence and credits
 
-Base model: {base_lic}. Adapter: MIT, same as the SafeShare project.
+Base model: {base_lic}. Adapter: MIT, same as the Sitr project.
 Team: Amal, Hajar, Ruba, Sana - Tuwaiq Academy, Generative AI Application
 Engineering bootcamp, October 2026.
 """
@@ -114,7 +114,7 @@ def find_adapter(folder: Path, drive: Path | None) -> Path | None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--repo", default="safeshare-qwen2.5-3b-lora-dpo",
+    ap.add_argument("--repo", default="sitr-qwen2.5-3b-lora-dpo",
                     help="repository name under your account")
     ap.add_argument("--private", action="store_true", help="create the repo private")
     ap.add_argument("--drive", default=None,

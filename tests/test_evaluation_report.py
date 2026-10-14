@@ -63,7 +63,7 @@ def test_report_workbook_has_required_sheets_and_rows():
             assert workbook.sheetnames == [
                 "Summary", "Document Results", "PII-Level Results", "Errors", "Model Calls"]
             assert workbook["Summary"]["A1"].value == \
-                "SafeShare test_human_judge evaluation"
+                "Sitr test_human_judge evaluation"
             assert Path(workbook["Summary"]["B3"].value) == Path("data/test_human_judge")
             assert workbook["PII-Level Results"].max_row == 2
             assert workbook["Document Results"].max_row == 2

@@ -1,4 +1,4 @@
--- SafeShare2 audit log.
+-- Sitr (سِتر) audit log.
 --
 -- Three design decisions worth stating:
 --

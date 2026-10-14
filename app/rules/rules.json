@@ -1,6 +1,6 @@
 {
   "version": "2026-10-08",
-  "owner": "SafeShare capstone team",
+  "owner": "Sitr (سِتر) capstone team",
   "note": "The company rules library. It is data, not code, and it lives outside the model on purpose: the model retrieves a rule and cites its id, and must never invent one. Add a rule by editing this file.",
   "receivers": {
     "INTERNAL_HR": {
@@ -126,7 +126,6 @@
       "reason": "Vendor invoices must carry the company registration and VAT numbers.",
       "citation": "Finance policy, vendor invoicing, clause 3.1"
     },
-
     {
       "rule_id": "HR-PII-001",
       "receiver": "INTERNAL_HR",
@@ -223,7 +222,6 @@
       "reason": "Company registration details are not personal data.",
       "citation": "Company data-handling policy, scope, clause 1.2"
     },
-
     {
       "rule_id": "ANALYST-PII-001",
       "receiver": "ANALYST",
@@ -320,7 +318,6 @@
       "reason": "Company registration details are business information, not personal data.",
       "citation": "Analytics policy, clause 2.7"
     },
-
     {
       "rule_id": "SUPPORT-PII-001",
       "receiver": "CUSTOMER_SUPPORT",

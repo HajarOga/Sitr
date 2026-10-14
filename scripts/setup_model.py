@@ -241,7 +241,7 @@ def install_model(*, assume_yes: bool = False) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Install the SafeShare model")
+    parser = argparse.ArgumentParser(description="Install the Sitr model")
     parser.add_argument("--check", action="store_true", help="report only, no download")
     parser.add_argument("--json", action="store_true", help="print status as JSON")
     parser.add_argument("--xet", action="store_true",

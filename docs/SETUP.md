@@ -6,7 +6,7 @@ is cloned from GitHub. The steps are the same; the notes underneath explain the 
 ## 1. The short version
 
 ```bash
-git clone <YOUR-REPO-URL> safeshare2 && cd safeshare2
+git clone <YOUR-REPO-URL> sitr && cd sitr
 python3 -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env                                    # Windows: copy .env.example .env
@@ -165,7 +165,7 @@ machine-specific paths in code.
 
 ```bash
 git add . && git commit -m "Sitr: purpose-bound release with a local model at the core"
-git remote add origin git@github.com:<account>/safeshare2.git
+git remote add origin git@github.com:<account>/sitr.git
 git push -u origin main
 ```
 

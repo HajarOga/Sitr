@@ -4,9 +4,9 @@
 
 Writes to `data/export/`:
 
-* `safeshare-training-data.zip` - the whole set: the 24 documents with their labels, and
+* `sitr-training-data.zip` - the whole set: the 24 documents with their labels, and
   both JSONL files that the training scripts read.
-* `safeshare-training-set.xlsx` - the same thing as a readable index: one row per training
+* `sitr-training-set.xlsx` - the same thing as a readable index: one row per training
   example and per preference pair, so the set can be filtered and checked without reading
   JSON. Falls back to CSV if `openpyxl` is not installed.
 * `README.txt` - what is inside, in plain words, and where every value came from.
@@ -166,7 +166,7 @@ def main() -> None:
 
     EXPORT.mkdir(parents=True, exist_ok=True)
 
-    index_path = write_xlsx(EXPORT / "safeshare-training-set.xlsx", {
+    index_path = write_xlsx(EXPORT / "sitr-training-set.xlsx", {
         "Training examples": rows_for_examples(sft),
         "Validation examples": rows_for_examples(validation),
         "Preference pairs": rows_for_pairs(pairs),
@@ -190,7 +190,7 @@ def main() -> None:
         ],
     })
 
-    zip_path = EXPORT / "safeshare-training-data.zip"
+    zip_path = EXPORT / "sitr-training-data.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(TRAIN_DOCS.glob("*")):
             archive.write(path, f"documents/{path.name}")
@@ -200,7 +200,7 @@ def main() -> None:
                       "preference_pairs.jsonl")
         archive.write(ROOT / "docs" / "MODEL_ADAPTATION.md", "MODEL_ADAPTATION.md")
 
-    readme = f"""SafeShare - the training data
+    readme = f"""Sitr - the training data
 =============================
 
 Built from commit {_head()}.

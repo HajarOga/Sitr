@@ -5,7 +5,7 @@ data in it, and decides — per receiver — what is kept, replaced, removed, or
 human, citing the rule it applied. The decision model is Qwen2.5-3B-Instruct, adapted with
 LoRA (supervised fine-tuning) and DPO (preference alignment).
 
-Repo: **https://github.com/HajarOga/safeshare2**
+Repo: **https://github.com/HajarOga/sitr**
 
 ---
 
@@ -19,8 +19,8 @@ Repo: **https://github.com/HajarOga/safeshare2**
 ## 2 · Set up
 
 ```bash
-git clone https://github.com/HajarOga/safeshare2
-cd safeshare2
+git clone https://github.com/HajarOga/sitr
+cd sitr
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -33,7 +33,7 @@ pip install -r training/requirements-train.txt   # needed to train
 
 ```bash
 pip install huggingface_hub
-hf download <user>/safeshare-qwen2.5-3b-lora-dpo --local-dir training
+hf download <user>/sitr-qwen2.5-3b-lora-dpo --local-dir training
 ```
 
 Then `training/lora_adapter/` and `training/dpo_adapter/` exist, each containing
