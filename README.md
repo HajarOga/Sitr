@@ -266,7 +266,6 @@ library in `app/rules/rules.json` is team-authored.
 سِتر (Sitr) capstone — formerly SafeShare — Tuwaiq Academy, Generative AI Application
 Engineering bootcamp, October 2026: **Amal · Hajar · Ruba · Sana**.
 
-The project was developed with AI assistance and reviewed and tested by the team.
 
 ## License
 
