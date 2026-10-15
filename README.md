@@ -121,8 +121,7 @@ streamlit run app/ui_streamlit.py
 ```
 
 The dashboard provides Upload, Review, Audit log, and Policy pages. Analysis runs only
-after the user starts it. The Policy page also answers Arabic and English questions from
-the retrieved rules, and shows the rule each answer is grounded in. Progress and timing information reflect actual pipeline stages
+after the user starts it. Progress and timing information reflect actual pipeline stages
 and completed document chunks.
 
 The optional HTTP API is:
@@ -132,6 +131,15 @@ uvicorn app.main:app --reload
 ```
 
 Its health endpoint is available at `http://127.0.0.1:8000/api/health`.
+
+## How policy and search work
+
+- **Rules:** `app/rules/rules.json` holds the rules for each receiver. For each
+  document, the receiver's rules are read from this file and placed in the model prompt.
+- **Policy search:** the rules are also embedded in a Chroma index. The Policy page uses
+  it to answer Arabic and English questions and shows the rule behind each answer.
+  Editing a rule updates the file, the version and the index.
+- **Document assistant:** answers questions about the released safe copy and summarizes it.
 
 ## Tests and smoke check
 
@@ -261,22 +269,3 @@ The project previously checked and did not use `aniket-curlscape/pii-masking-eng
 (licence listed as “other”) or `ai4privacy/*` (custom two-tier licence). The policy
 library in `app/rules/rules.json` is team-authored.
 
-## Team
-
-سِتر (Sitr) capstone — formerly SafeShare — Tuwaiq Academy, Generative AI Application
-Engineering bootcamp, October 2026: **Amal · Hajar · Ruba · Sana**.
-
-
-### AI assistance
-
-Parts of the code and documentation were drafted with an AI coding assistant (GitHub
-Copilot in the editor, and an AI chat assistant for drafting). All design decisions, the
-policy content, the training and evaluation runs, and the review and testing of every file
-were carried out by the team. No AI system produced results: every number in this
-repository comes from a run we executed.
-
-## License
-
-This project is licensed under the MIT License; see [LICENSE](LICENSE). Model and
-adapter terms are governed by their respective publishers and are not replaced by the
-project license.
